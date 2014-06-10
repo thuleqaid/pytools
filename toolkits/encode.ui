@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Encode</class>
+ <widget class="QWidget" name="Encode">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>311</width>
+    <height>328</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Encode</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Source Folder</string>
+       </property>
+       <property name="buddy">
+        <cstring>inPath</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="inPath"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnChoose">
+       <property name="text">
+        <string>Choose...</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="3" column="0" colspan="2">
+    <widget class="QListWidget" name="outHistory"/>
+   </item>
+   <item row="4" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QPushButton" name="btnRestore">
+       <property name="text">
+        <string>Restore</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnChange">
+       <property name="text">
+        <string>Change</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="4" column="1">
+    <widget class="QCheckBox" name="inIgnore">
+     <property name="text">
+      <string>Ignore VCS Files</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Encoding</string>
+       </property>
+       <property name="buddy">
+        <cstring>outEncode</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="outEncode"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>LineTerminator</string>
+       </property>
+       <property name="buddy">
+        <cstring>outEOL</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="outEOL">
+       <item>
+        <property name="text">
+         <string>DOS</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>UNIX</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>MAC</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>FilePattern</string>
+       </property>
+       <property name="buddy">
+        <cstring>inFileType</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="inFileType">
+       <item>
+        <property name="text">
+         <string>All Files(*.*)</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btnChoose</sender>
+   <signal>clicked()</signal>
+   <receiver>Encode</receiver>
+   <slot>onBtnChoose()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>335</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>265</x>
+     <y>5</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnRestore</sender>
+   <signal>clicked()</signal>
+   <receiver>Encode</receiver>
+   <slot>onBtnRestore()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>122</x>
+     <y>364</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>169</x>
+     <y>378</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnChange</sender>
+   <signal>clicked()</signal>
+   <receiver>Encode</receiver>
+   <slot>onBtnChange()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>298</x>
+     <y>363</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>313</x>
+     <y>377</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onBtnChoose()</slot>
+  <slot>onBtnChange()</slot>
+  <slot>onBtnRestore()</slot>
+ </slots>
+</ui>

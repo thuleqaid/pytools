@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Vim</class>
+ <widget class="QWidget" name="Vim">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>274</width>
+    <height>267</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Vim</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="btnAdd">
+       <property name="text">
+        <string>Add</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnDelete">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Delete</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnUpdate">
+       <property name="text">
+        <string>Update</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QListWidget" name="listProject">
+     <property name="font">
+      <font>
+       <family>FixedSys</family>
+      </font>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="txtStatus">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btnAdd</sender>
+   <signal>clicked()</signal>
+   <receiver>Vim</receiver>
+   <slot>onBtnAdd()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>90</x>
+     <y>27</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>137</x>
+     <y>4</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnDelete</sender>
+   <signal>clicked()</signal>
+   <receiver>Vim</receiver>
+   <slot>onBtnDelete()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>176</x>
+     <y>30</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>238</x>
+     <y>5</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnUpdate</sender>
+   <signal>clicked()</signal>
+   <receiver>Vim</receiver>
+   <slot>onBtnUpdate()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>263</x>
+     <y>32</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>332</x>
+     <y>5</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>listProject</sender>
+   <signal>itemDoubleClicked(QListWidgetItem*)</signal>
+   <receiver>Vim</receiver>
+   <slot>onItemDoubleClicked(QListWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>264</x>
+     <y>231</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>396</x>
+     <y>186</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>listProject</sender>
+   <signal>currentRowChanged(int)</signal>
+   <receiver>Vim</receiver>
+   <slot>onRowChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>120</x>
+     <y>114</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>6</x>
+     <y>15</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onBtnAdd()</slot>
+  <slot>onBtnDelete()</slot>
+  <slot>onBtnUpdate()</slot>
+  <slot>onItemDoubleClicked(QListWidgetItem*)</slot>
+  <slot>onRowChanged(int)</slot>
+ </slots>
+</ui>
