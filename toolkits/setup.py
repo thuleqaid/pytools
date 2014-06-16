@@ -19,7 +19,7 @@ executables = [
 ]
 
 setup(name='toolkits',
-      version='0.1',
+      version='0.2',
       description='toolkits',
       options=options,
       executables=executables

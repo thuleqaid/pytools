@@ -5,6 +5,7 @@ from PyQt4 import QtGui
 
 import encodeentry
 import vimentry
+import dnsshrentry
 
 class ToolkitsWindow(QtGui.QMainWindow):
     def setupUi(self,ui=None):
@@ -16,6 +17,7 @@ class ToolkitsWindow(QtGui.QMainWindow):
         self._ui.setupUi(self)
         self.addTab(vimentry.MainWidget(),'Vim')
         self.addTab(encodeentry.MainWidget(),'Encode')
+        self.addTab(dnsshrentry.MainWidget(),'DNSSHR')
     def onTabChanged(self,index):
         pass
     def addTab(self,widget,tabname):

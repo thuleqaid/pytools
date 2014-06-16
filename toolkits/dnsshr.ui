@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DNSSHR</class>
+ <widget class="QWidget" name="DNSSHR">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>274</width>
+    <height>345</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>DNSSHR</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Username</string>
+       </property>
+       <property name="buddy">
+        <cstring>txtUsername</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1" colspan="3">
+      <widget class="QLineEdit" name="txtUsername"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Password</string>
+       </property>
+       <property name="buddy">
+        <cstring>txtPassword</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1" colspan="3">
+      <widget class="QLineEdit" name="txtPassword">
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Year</string>
+       </property>
+       <property name="buddy">
+        <cstring>inYear</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QSpinBox" name="inYear">
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="minimum">
+        <number>2014</number>
+       </property>
+       <property name="maximum">
+        <number>2050</number>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Month</string>
+       </property>
+       <property name="buddy">
+        <cstring>inMonth</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QComboBox" name="inMonth">
+       <item>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>3</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>4</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>5</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>7</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>8</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>9</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>11</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>12</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QPushButton" name="btnRefresh">
+     <property name="text">
+      <string>Show</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGraphicsView" name="graphics"/>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="txtStatus">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btnRefresh</sender>
+   <signal>clicked()</signal>
+   <receiver>DNSSHR</receiver>
+   <slot>onBtnRefresh()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>137</x>
+     <y>14</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>168</x>
+     <y>3</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onBtnRefresh()</slot>
+ </slots>
+</ui>
