@@ -2,4 +2,7 @@
   <qresource prefix="/icon">
     <file>ec.png</file>
   </qresource>
+  <qresource prefix="/qm">
+    <file>encodechanger_zh_CN.qm</file>
+  </qresource>
 </RCC>

@@ -71,13 +71,22 @@ class MainDialog(QtGui.QDialog):
         self._ui.comboRegex.setCurrentIndex(0)
 
 if __name__ == '__main__':
+    # command line options
     parser = ArgumentParser()
     parser.add_argument('-l','--log',dest='flag_log',action='store_true',default=False,help='generate log config')
     options=parser.parse_args()
     if options.flag_log:
         logutil.newConf(('EncodeChanger',))
+
     app = QtGui.QApplication(sys.argv)
+    # Change UI Language based on system
+    locale = QtCore.QLocale.system()
+    trans = QtCore.QTranslator()
+    trans.load(":/qm/encodechanger_{}.qm".format(locale.name()))
+    app.installTranslator(trans)
+
     mw  = MainDialog()
     mw.setupUi()
     mw.show()
     app.exec_()
+
