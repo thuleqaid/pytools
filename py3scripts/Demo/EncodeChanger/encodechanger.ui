@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EncodeChangerDialog</class>
+ <widget class="QDialog" name="EncodeChangerDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>450</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>EncodeChanger</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="encodechanger.qrc">
+    <normaloff>:/icon/ec.png</normaloff>:/icon/ec.png</iconset>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Source Dir</string>
+     </property>
+     <property name="buddy">
+      <cstring>editSrcDir</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="DropEdit" name="editSrcDir"/>
+   </item>
+   <item row="0" column="2">
+    <widget class="QPushButton" name="btnSrcDir">
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Destination Dir</string>
+     </property>
+     <property name="buddy">
+      <cstring>editDstDir</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="DropEdit" name="editDstDir"/>
+   </item>
+   <item row="1" column="2">
+    <widget class="QPushButton" name="btnDstDir">
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>Files Filter</string>
+     </property>
+     <property name="buddy">
+      <cstring>comboRegex</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Filter RegEx</string>
+     </property>
+     <property name="buddy">
+      <cstring>editRegex</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Output Encode</string>
+     </property>
+     <property name="buddy">
+      <cstring>comboEncode</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QComboBox" name="comboEncode"/>
+   </item>
+   <item row="4" column="2">
+    <widget class="QCheckBox" name="checkCopyOther">
+     <property name="text">
+      <string>Copy Other Files</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Output Newline</string>
+     </property>
+     <property name="buddy">
+      <cstring>comboNewline</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QComboBox" name="comboNewline">
+     <item>
+      <property name="text">
+       <string>System</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Dos</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Unix</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Mac</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="5" column="2">
+    <widget class="QCheckBox" name="checkIgnoreVCS">
+     <property name="text">
+      <string>Ignore VCS Files</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0" colspan="3">
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>All Files</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QListWidget" name="listAll"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Hit Files</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QListWidget" name="listHit"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Other Files</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QListWidget" name="listOther"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>Error Logs</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QListWidget" name="listLog"/>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item row="2" column="1" colspan="2">
+    <widget class="QComboBox" name="comboRegex">
+     <item>
+      <property name="text">
+       <string>Manual</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="3" column="1" colspan="2">
+    <widget class="QLineEdit" name="editRegex"/>
+   </item>
+   <item row="6" column="0" colspan="3">
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QPushButton" name="btnPreview">
+       <property name="text">
+        <string>Preview</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnAction">
+       <property name="text">
+        <string>Action</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DropEdit</class>
+   <extends>QLineEdit</extends>
+   <header>dropedit.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>editSrcDir</tabstop>
+  <tabstop>btnSrcDir</tabstop>
+  <tabstop>editDstDir</tabstop>
+  <tabstop>btnDstDir</tabstop>
+  <tabstop>comboRegex</tabstop>
+  <tabstop>editRegex</tabstop>
+  <tabstop>comboEncode</tabstop>
+  <tabstop>comboNewline</tabstop>
+  <tabstop>btnAction</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>listAll</tabstop>
+  <tabstop>listHit</tabstop>
+  <tabstop>listOther</tabstop>
+  <tabstop>listLog</tabstop>
+ </tabstops>
+ <resources>
+  <include location="encodechanger.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>btnSrcDir</sender>
+   <signal>clicked()</signal>
+   <receiver>EncodeChangerDialog</receiver>
+   <slot>onBtnSrcDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>408</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>339</x>
+     <y>4</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnDstDir</sender>
+   <signal>clicked()</signal>
+   <receiver>EncodeChangerDialog</receiver>
+   <slot>onBtnDstDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>442</x>
+     <y>50</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>496</x>
+     <y>41</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnPreview</sender>
+   <signal>clicked()</signal>
+   <receiver>EncodeChangerDialog</receiver>
+   <slot>onBtnPreview()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>260</x>
+     <y>185</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>495</x>
+     <y>186</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnAction</sender>
+   <signal>clicked()</signal>
+   <receiver>EncodeChangerDialog</receiver>
+   <slot>onBtnAction()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>449</x>
+     <y>173</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>496</x>
+     <y>168</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboRegex</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>EncodeChangerDialog</receiver>
+   <slot>onComboRegex(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>347</x>
+     <y>77</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>495</x>
+     <y>93</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>editRegex</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>EncodeChangerDialog</receiver>
+   <slot>onEditRegex(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>214</x>
+     <y>102</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>6</x>
+     <y>118</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onBtnSrcDir()</slot>
+  <slot>onBtnDstDir()</slot>
+  <slot>onBtnPreview()</slot>
+  <slot>onBtnAction()</slot>
+  <slot>onComboRegex(int)</slot>
+  <slot>onEditRegex(QString)</slot>
+ </slots>
+</ui>
