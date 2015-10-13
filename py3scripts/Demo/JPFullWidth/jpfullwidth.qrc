@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="qm">
+    <file>jpfullwidth_zh_CN.qm</file>
+  </qresource>
+  <qresource prefix="icon">
+    <file>jpfullwidth.png</file>
+  </qresource>
+</RCC>
