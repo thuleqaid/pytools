@@ -263,7 +263,7 @@ def guessEncode(fname,*encodelist):
           'utf_16':   codecs.BOM_UTF16,
           'utf_16_be':codecs.BOM_UTF16_BE,
           'utf_16_le':codecs.BOM_UTF16_LE,
-          'utf_8':    codecs.BOM_UTF8}
+          'utf_8_sig':    codecs.BOM_UTF8}
     # bom check
     for enc,bom in boms.items():
         bomlen=len(bom)
