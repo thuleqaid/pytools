@@ -1,6 +1,7 @@
 logutil.py			log,singleton,当前文件路径
 encodechanger.py	目录级文件编码转换
 jp2fullwidth.py		日文假名半角转全角
+cscope_parser.py	代码情报提取（cscope.out）
 ========================================
 Qt4
 	DropTemplate.py	文件拖放模板
