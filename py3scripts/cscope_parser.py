@@ -40,23 +40,19 @@ class CscopeParser(object):
         # cscope.out文件的生成方法：cscope -Rbcu
         fullpath = os.path.normpath(os.path.abspath(cscopeout))
         self._root, self._cscope = os.path.split(fullpath)
-        testencodes = ['cp932','cp936']
-        if encoding and (encoding not in testencodes):
-            testencodes.insert(0, encoding)
-        # 检测文件编码
-        self._encode = encodechanger.guessEncode(fullpath, *testencodes)[0]
-        if self._encode:
-            self._log.log(20, 'New object[{},{},{}]'.format(self._root, self._cscope, self._encode))
-            if cacheCheck(os.path.join(self._root,'cscope.cache'), __file__, fullpath):
-                self._log.log(10, 'Read Cache')
-                self._readCache()   # 从cache文件读入分析结果
-            else:
-                self._parse()       # 分析cscope.out文件
-                self._readsource()  # 分析源代码
-                self._writeCache()  # 将分析结果写入cache文件
-                self._log.log(10, 'Write Cache')
+        # 设置文件编码列表
+        self._testcodes = ['cp932','cp936']
+        if encoding and (encoding not in self._testcodes):
+            self._testcodes.insert(0, encoding)
+        self._log.log(20, 'New object[{},{}]'.format(self._root, self._cscope))
+        if cacheCheck(os.path.join(self._root,'cscope.cache'), __file__, fullpath):
+            self._log.log(10, 'Read Cache')
+            self._readCache()   # 从cache文件读入分析结果
         else:
-            self._log.log(30, 'New object[{},{},ErrorEncode]'.format(self._root, self._cscope))
+            self._parse()       # 分析cscope.out文件
+            self._readsource()  # 分析源代码
+            self._writeCache()  # 将分析结果写入cache文件
+            self._log.log(10, 'Write Cache')
     def getFuncInfo(self, *funcnames):
         # 根据函数名查找函数情报
         outlist = []
@@ -64,6 +60,12 @@ class CscopeParser(object):
             if item.name in funcnames:
                 outlist.append(item)
         return outlist
+    def outputFuncInfo(self, outfile):
+        # 输出函数列表
+        fh=open(outfile,'w',encoding='utf-8')
+        for item in self._funcs:
+            fh.write('{}\t{}\t{}\t{}\n'.format(item.relpath, item.name, item.extra.get('funcno',''), item.extra.get('jpname','')))
+        fh.close()
     @classmethod
     def getFuncCall_asdict(cls, funcinfo):
         # 输出调用的函数列表，key是函数名，value是函数出现的index(从0开始)数组(一个函数可能被多次调用)
@@ -73,7 +75,7 @@ class CscopeParser(object):
         return outdict
     def _parse(self):
         # 读取cscope.out文件，提取函数情报
-        fh = open(os.path.join(self._root, self._cscope), 'r', encoding=self._encode, errors='ignore')
+        fh = open(os.path.join(self._root, self._cscope), 'r', errors='ignore')
         lines = fh.readlines()
         fh.close()
         excludenames = ['VOID', 'FLAG', 'defined'] # 可能错误识别成函数的标示
@@ -121,7 +123,14 @@ class CscopeParser(object):
             if curfile=='' or (curfile and item.relpath!=curfile):
                 # 文件名变更时，重新读取代码文件
                 curfile = item.relpath
-                fh = open(os.path.join(self._root, curfile),'r',encoding=self._encode,errors='ignore')
+                fullpath = os.path.join(self._root, curfile)
+                encode = encodechanger.guessEncode(fullpath, *self._testcodes)[0]
+                if encode:
+                    # 文件编码解析成功
+                    fh = open(fullpath,'r',encoding=encode,errors='ignore')
+                else:
+                    # 文件编码解析失败，使用系统默认编码
+                    fh = open(fullpath,'r',errors='ignore')
                 lines = fh.readlines()
                 fh.close()
                 startline = 0
@@ -164,8 +173,8 @@ class CscopeParser(object):
 if __name__ == '__main__':
     # 生成log输出配置文件
     #logutil.newConf(('CscopeParser', 'EncodeChanger'))
-    # 例子：查找指定函数所调用的所有函数
     cp = CscopeParser('cscope.out')
+    # 例子：查找指定函数所调用的所有函数
     info = cp.getFuncInfo('Input_FSP1_IF', 'API_Renewal_InfoFail')
     fh = open('out.txt','w',encoding='utf-8')
     for item in info:
@@ -181,3 +190,5 @@ if __name__ == '__main__':
             fh.write('\n')
         fh.write('\n')
     fh.close()
+    # 例子：输出函数列表
+    cp.outputFuncInfo('out.txt')
