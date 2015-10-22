@@ -4,6 +4,8 @@ import re
 import os
 import collections
 import pickle
+import threading
+import queue
 import logutil  # logger name: CscopeParser
 import encodechanger
 
@@ -32,6 +34,9 @@ class CscopeParser(object):
     PAT_FUNCSTART = re.compile(r'^\t\$(?P<funcname>\S+)$')
     PAT_FUNCSTOP = re.compile(r'^\}$')
     PAT_FUNCCALL = re.compile(r'^\t`(?P<funcname>\S+)$')
+    PAT_JPNAME = re.compile(r'^\s+機能名\s*(:|：)\s*(?P<jpname>\S.*?)\s*$')
+    PAT_FUNCNO = re.compile(r'^\s+関数番号\s*(:|：)\s*(?P<funcno>\S+)')
+    WORK_COUNT = 3
     # 函数情报类型 extra是从代码中读出的注释情报，其他的数据是从cscope.out中取得
     FuncInfo = collections.namedtuple('FuncInfo',['name','relpath','startline','stopline','calls','extra'])
     def __init__(self, cscopeout, encoding=None):
@@ -49,8 +54,21 @@ class CscopeParser(object):
             self._log.log(10, 'Read Cache')
             self._readCache()   # 从cache文件读入分析结果
         else:
-            self._parse()       # 分析cscope.out文件
-            self._readsource()  # 分析源代码
+            self._queue = queue.Queue()
+            # 队列处理完成的标志
+            self._queueend = threading.Semaphore(self.WORK_COUNT)
+            for i in range(self.WORK_COUNT):
+                self._queueend.acquire()
+            # 启动子线程
+            for i in range(self.WORK_COUNT):
+                 t = threading.Thread(target=self._worker)
+                 t.start()
+            self._parse()       # 分析cscope.out文件，同时把要解析的源代码文件加入到队列中
+            # 等待队列处理完成
+            self._queue.join()
+            # 队列处理完成后设置完成标志
+            for i in range(self.WORK_COUNT):
+                self._queueend.release()
             self._writeCache()  # 将分析结果写入cache文件
             self._log.log(10, 'Write Cache')
     def getFuncInfo(self, *funcnames):
@@ -84,6 +102,8 @@ class CscopeParser(object):
         curfunc = ''
         curfunc_startline = -1
         self._funcs = []
+        lastfile = ''
+        startidx = -1
         for idx,line in enumerate(lines):
             ret0 = self.PAT_FILE.search(line)
             ret1 = self.PAT_LINE.search(line)
@@ -104,6 +124,11 @@ class CscopeParser(object):
                     self._log.log(5, 'Match function[{}] start at line [{}]'.format(curfunc,idx+1))
             elif ret3:
                 if curfunc:
+                    if curfile != lastfile:
+                        if lastfile:
+                            self._queue.put((startidx, len(self._funcs)))
+                        lastfile = curfile
+                        startidx = len(self._funcs)
                     self._funcs.append(self.FuncInfo(name=curfunc, relpath=curfile,
                                                      startline=curfunc_startline, stopline=curline,
                                                      calls=callfuncs, extra={}))
@@ -114,35 +139,41 @@ class CscopeParser(object):
                 if curfunc and (ret4.group('funcname') not in excludenames):
                     callfuncs.append(ret4.group('funcname'))
                     self._log.log(5, 'Match funccall[{}] at line [{}]'.format(ret4.group('funcname'), idx+1))
-    def _readsource(self):
-        # 读取代码文件，提取函数扩展情报
-        curfile = ''
-        pat_jpname = re.compile(r'^\s+機能名\s*(:|：)\s*(?P<jpname>\S.*?)\s*$')
-        pat_funcno = re.compile(r'^\s+関数番号\s*(:|：)\s*(?P<funcno>\S+)')
-        for item in self._funcs:
-            if curfile=='' or (curfile and item.relpath!=curfile):
-                # 文件名变更时，重新读取代码文件
-                curfile = item.relpath
-                fullpath = os.path.join(self._root, curfile)
-                encode = encodechanger.guessEncode(fullpath, *self._testcodes)[0]
-                if encode:
-                    # 文件编码解析成功
-                    fh = open(fullpath,'r',encoding=encode,errors='ignore')
-                else:
-                    # 文件编码解析失败，使用系统默认编码
-                    fh = open(fullpath,'r',errors='ignore')
-                lines = fh.readlines()
-                fh.close()
-                startline = 0
-                self._log.log(5, 'Open source file[{}]'.format(curfile))
+        self._queue.put((startidx, len(self._funcs)))
+    def _worker(self):
+        while True:
+            try:
+                item = self._queue.get(True, 1)
+                self._readSource(*item)
+                self._queue.task_done()
+            except queue.Empty as e:
+                # 1秒内未取到队列数据，则判断队列是否已经处理完成
+                if self._queueend.acquire(False):
+                    break
+    def _readSource(self, startidx, stopidx):
+        curfile = self._funcs[startidx].relpath
+        fullpath = os.path.join(self._root, curfile)
+        encode = encodechanger.guessEncode(fullpath, *self._testcodes)[0]
+        if encode:
+            # 文件编码解析成功
+            fh = open(fullpath,'r',encoding=encode,errors='ignore')
+        else:
+            # 文件编码解析失败，使用系统默认编码
+            fh = open(fullpath,'r',errors='ignore')
+        lines = fh.readlines()
+        fh.close()
+        startline = 0
+        self._log.log(5, 'Open source file[{}]'.format(curfile))
+        for idx in range(startidx, stopidx):
+            item = self._funcs[idx]
             # 从上一个函数的结束到当前函数的开始范围内，查找机能名和函数ID
             curline = int(item.startline) - 1
             flag1 = False
             flag2 = False
             self._log.log(5, 'Check function[{}] in the range {}-{}'.format(item.name, startline+1, curline+1))
             while curline > startline:
-                ret1 = pat_jpname.search(lines[curline])
-                ret2 = pat_funcno.search(lines[curline])
+                ret1 = self.PAT_JPNAME.search(lines[curline])
+                ret2 = self.PAT_FUNCNO.search(lines[curline])
                 if ret1:
                     if flag1:
                         break
