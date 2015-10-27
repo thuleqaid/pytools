@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ToolBoxDialog</class>
+ <widget class="QDialog" name="ToolBoxDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ToolBox</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>2</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Text</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>File</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Folder</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="FileFilterQt" name="filefilter" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>428</width>
+           <height>522</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Dest Dir</string>
+             </property>
+             <property name="buddy">
+              <cstring>editDstDir</cstring>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="DropEdit" name="editDstDir"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnDstDir">
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox">
+           <property name="title">
+            <string>Exception Action</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>Fail Files</string>
+              </property>
+              <property name="buddy">
+               <cstring>comboFail</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="comboFail">
+              <item>
+               <property name="text">
+                <string>Ignore</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Copy</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="comboUnhit">
+              <item>
+               <property name="text">
+                <string>Ignore</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Copy</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>UnHit Files</string>
+              </property>
+              <property name="buddy">
+               <cstring>comboUnhit</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>Excluded Files</string>
+              </property>
+              <property name="buddy">
+               <cstring>comboExclude</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QComboBox" name="comboExclude">
+              <item>
+               <property name="text">
+                <string>Ignore</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Copy</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTabWidget" name="tabWidget_2">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <widget class="QWidget" name="tab_5">
+            <attribute name="title">
+             <string>Encode</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridLayout_2">
+             <item row="4" column="0" colspan="2">
+              <widget class="QPushButton" name="btnAction_DirEncode">
+               <property name="text">
+                <string>Action</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1" rowspan="2">
+              <widget class="QComboBox" name="comboEncode_DirEncode"/>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="comboNewline_DirEncode"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>Output Newline</string>
+               </property>
+               <property name="buddy">
+                <cstring>comboNewline_DirEncode</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0" rowspan="2">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Output Encode</string>
+               </property>
+               <property name="buddy">
+                <cstring>comboEncode_DirEncode</cstring>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tab_6">
+            <attribute name="title">
+             <string>Katakana</string>
+            </attribute>
+            <layout class="QHBoxLayout" name="horizontalLayout_3">
+             <item>
+              <widget class="QPushButton" name="btnAction_DirKatakana">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Action</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="listWidget"/>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>Source</string>
+      </attribute>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>FileFilterQt</class>
+   <extends>QWidget</extends>
+   <header>filefilterqt.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>DropEdit</class>
+   <extends>QLineEdit</extends>
+   <header>dropedit.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btnDstDir</sender>
+   <signal>clicked()</signal>
+   <receiver>ToolBoxDialog</receiver>
+   <slot>onBtnDstDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>749</x>
+     <y>54</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>796</x>
+     <y>26</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnAction_DirEncode</sender>
+   <signal>clicked()</signal>
+   <receiver>ToolBoxDialog</receiver>
+   <slot>onBtnActionDirEncode()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>642</x>
+     <y>273</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>794</x>
+     <y>266</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnAction_DirKatakana</sender>
+   <signal>clicked()</signal>
+   <receiver>ToolBoxDialog</receiver>
+   <slot>onBtnActionDirKatakana()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>646</x>
+     <y>247</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>792</x>
+     <y>257</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onBtnDstDir()</slot>
+  <slot>onBtnActionDirEncode()</slot>
+  <slot>onBtnActionDirKatakana()</slot>
+ </slots>
+</ui>
