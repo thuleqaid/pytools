@@ -1,6 +1,6 @@
 1. design UI and create resource file(xxx.qrc) to specify icons by QtDesigner
 2. use the following command to generate language files(*.ts)
-	pylupdate4 xxx_ui.py -o xxx_locale.ts
+	pylupdate4 xxx_ui.py -ts xxx_locale.ts
 3. use QtLinguist to translate xxx_locale.ts and release xxx_locale.qm
 4. add xxx_locale.qm into xxx.qrc
 5. repeat 2~4 to add other language's resource

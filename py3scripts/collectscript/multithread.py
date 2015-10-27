@@ -3,7 +3,7 @@
 import collections
 import threading
 import queue
-import logutil
+from .logutil import LogUtil
 
 LOGNAME = 'MultiThread'
 
@@ -16,7 +16,7 @@ class MultiThread(object):
         self._finish = True
         self._lock = threading.Lock()
         self._cbfuncs = {}
-        self._log = logutil.LogUtil().logger(LOGNAME)
+        self._log = LogUtil().logger(LOGNAME)
     def register(self, target, group='DEFAULT'):
         if self._finishCheck:
             self._cbfuncs[group] = target

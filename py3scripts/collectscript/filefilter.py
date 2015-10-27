@@ -3,7 +3,7 @@
 import os
 import re
 import shutil
-import logutil
+from .logutil import LogUtil
 
 LOGNAME = 'FileFilter'
 
@@ -16,7 +16,7 @@ class FileFilter(object):
         self._fileex    = set()               # Property(Read):fileall, Relative path of all files in the self._srcdir
         self._filehit   = set()               # Property(Read):filehit/fileother, Subset of self._filehit, which contains items that meet self._filter
         self._fileunhit = set()               # Property(Read):filehit/fileother, Subset of self._filehit, which contains items that meet self._filter
-        self._logger = logutil.LogUtil().logger(LOGNAME)
+        self._logger = LogUtil().logger(LOGNAME)
         self._logger.log(20, 'New Object')
     def getSrcdir(self):
         return self._srcdir
@@ -62,6 +62,9 @@ class FileFilter(object):
     def getUnHitFiles(self):
         return tuple(self._fileunhit)
     def checkFiles(self):
+        self._fileex    = set()
+        self._filehit   = set()
+        self._fileunhit = set()
         for fitem in self._fileall:
             for item in self._filterex:
                 if item.search(fitem):
