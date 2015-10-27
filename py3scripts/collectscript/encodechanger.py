@@ -2,6 +2,7 @@
 # VERSION: 0.1
 import os
 from .logutil import LogUtil
+from .guess import guessEncode
 
 LOGNAME = 'EncodeChanger'
 
@@ -16,10 +17,10 @@ class EncodeChanger(object):
     def change(self, srcfile, dstfile, outcode='utf-8-sig', newline=''):
         inpath = srcfile
         outpath = dstfile
-        self._logger.log(10, "Action_Translate: {}".format(item))
+        self._logger.log(10, "Action_Translate: {}->{}[{},{}]".format(srcfile,dstfile,outcode,newline))
         result = True
         try:
-            incode = guessEncode(inpath, *self.incode)[0]
+            incode = guessEncode(inpath, *self._incode)[0]
             if incode:
                 fin = open(inpath, 'r', encoding=incode)
                 data = fin.read()
@@ -51,5 +52,5 @@ class EncodeChanger(object):
             if os.path.isfile(filepath):
                 os.remove(filepath)
         else:
-            os.makedirs(head)
+            os.makedirs(head, exist_ok=True)
 
