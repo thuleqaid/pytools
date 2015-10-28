@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 # VERSION: 0.1
+import sys
 import os
 from threading import Lock
 import logging
@@ -12,6 +13,11 @@ import logging.config
 #       logger = LogUtil().logger(lognameX)
 #   3. output log
 #       logger.log(nLvl, msg)
+
+if hasattr(sys,'frozen'):
+    _selffile = sys.executable
+else:
+    _selffile = __file__
 
 def scriptPath(filepath):
     '''
@@ -44,8 +50,8 @@ def singleton(cls, *args, **kw):
 
 @singleton
 class LogUtil(object):
-    LOGDIR=scriptPath(__file__).replace('\\','/')
-    CONFFILE=os.path.join(scriptPath(__file__),'logging.conf')
+    LOGDIR=scriptPath(_selffile).replace('\\','/')
+    CONFFILE=os.path.join(scriptPath(_selffile),'logging.conf')
     def __init__(self):
         if os.path.exists(self.CONFFILE) and os.path.isfile(self.CONFFILE):
             logging.config.fileConfig(self.CONFFILE,{'logdir':self.LOGDIR})

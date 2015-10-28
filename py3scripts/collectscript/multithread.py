@@ -41,10 +41,11 @@ class MultiThread(object):
         self._log.log(20, 'Wait finished')
         self.stop()
     def stop(self):
-        self._lock.acquire()
-        self._finish = True
-        self._lock.release()
-        self._log.log(20, 'Stop multithread')
+        if not self._daemon:
+            self._lock.acquire()
+            self._finish = True
+            self._lock.release()
+            self._log.log(20, 'Stop multithread')
     def _dispatch(self):
         while True:
             try:
@@ -63,10 +64,13 @@ class MultiThread(object):
                 if self._finishCheck():
                     break
     def _finishCheck(self):
-        self._lock.acquire()
-        flag = self._finish
-        self._lock.release()
-        return flag
+        if self._daemon:
+            return False
+        else:
+            self._lock.acquire()
+            flag = self._finish
+            self._lock.release()
+            return flag
 
 if __name__ == '__main__':
     def test(data):

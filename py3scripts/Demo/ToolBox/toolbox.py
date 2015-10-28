@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 from PyQt4 import QtGui,QtCore
 import os
+import sys
 import shutil
+import subprocess
 import toolbox_ui
-from collectscript import logutil, encodechanger, jp2fullwidth, multithread, guess
+from collectscript import logutil, encodechanger, jp2fullwidth, multithread, guess, tagparser
 
+if hasattr(sys,'frozen'):
+    _selffile = sys.executable
+else:
+    _selffile = __file__
 class MainDialog(QtGui.QDialog):
     def setupUi(self):
+        self._selfpath = os.path.abspath(logutil.scriptPath(_selffile))
         self._ui = toolbox_ui.Ui_ToolBoxDialog()
         self._ui.setupUi(self)
         self._ui.comboEncode_DirEncode.addItem('UTF-8(BOM)','utf_8_sig')
@@ -19,7 +26,19 @@ class MainDialog(QtGui.QDialog):
         self._ui.comboNewline_DirEncode.addItem('Mac','mac')
         self._ui.filefilter._ui.comboIn1.setCurrentIndex(1)
         self._ui.filefilter._ui.editIn1.setText('.*')
+        # Remove Text and File Tab
+        self._ui.tabWidget.removeTab(0)
+        self._ui.tabWidget.removeTab(0)
         self.act_encode = encodechanger.EncodeChanger()
+        self.act_cscope = None
+        self._worker = multithread.MultiThread(3, True)
+        self._worker.register(self._actionCopy,'Copy')
+        self._worker.register(self._actionEncode,'Encode')
+        self._worker.register(self._actionKatakana,'Katakana')
+        self._worker.register(self._actionCscope,'Cscope')
+        self._worker.register(self._actionCtags,'Ctags')
+        self._worker.start()
+    # Tab_Folder
     def onBtnDstDir(self):
         self._ui.editDstDir.setText(QtGui.QFileDialog.getExistingDirectory(self))
     def onBtnActionDirEncode(self):
@@ -27,11 +46,7 @@ class MainDialog(QtGui.QDialog):
         dstdir = self._ui.editDstDir.text()
         if srcdir and dstdir:
             self._ui.listWidget.addItem("Start change encode...")
-            self._worker = multithread.MultiThread(3)
-            self._worker.register(self._actionCopy,'Copy')
-            self._worker.register(self._actionEncode,'Encode')
             self.setDisabled(True)
-            self._worker.start()
             for item in self._ui.filefilter._core.getHitFiles():
                 self._worker.addJob((srcdir, dstdir, item),'Encode')
             if self._ui.comboUnhit.currentIndex() == 1:
@@ -48,11 +63,7 @@ class MainDialog(QtGui.QDialog):
         dstdir = self._ui.editDstDir.text()
         if srcdir and dstdir:
             self._ui.listWidget.addItem("Start change katakana...")
-            self._worker = multithread.MultiThread(3)
-            self._worker.register(self._actionCopy,'Copy')
-            self._worker.register(self._actionKatakana,'Katakana')
             self.setDisabled(True)
-            self._worker.start()
             for item in self._ui.filefilter._core.getHitFiles():
                 self._worker.addJob((srcdir, dstdir, item),'Katakana')
             if self._ui.comboUnhit.currentIndex() == 1:
@@ -64,6 +75,52 @@ class MainDialog(QtGui.QDialog):
             self._worker.join()
             self.setDisabled(False)
             self._ui.listWidget.addItem("Finished.")
+    # Tab_Source
+    def onBtnNewSource(self):
+        self._ui.editNewSource.setText(QtGui.QFileDialog.getExistingDirectory(self))
+    def onBtnBaseSource(self):
+        self._ui.editBaseSource.setText(QtGui.QFileDialog.getExistingDirectory(self))
+    def onBtnExtractFunc(self):
+        srcdir = self._ui.editNewSource.text()
+        if srcdir:
+            self._ui.listWidget_Source.addItem("Start extract function info...")
+            self.setDisabled(True)
+            self._ui.listWidget_Source.addItem("  Generate tag files")
+            os.chdir(srcdir)
+            self._worker.addJob((srcdir,),'Cscope')
+            #self._worker.addJob((srcdir,),'Ctags')
+            self._worker.join()
+            os.chdir(self._selfpath)
+            self._ui.listWidget_Source.addItem("  Finished generating tag files")
+            self.act_cscope = tagparser.CscopeParser(os.path.join(srcdir,'cscope.out'))
+            fields = []
+            if self._ui.checkFilePath.checkState() == QtCore.Qt.Checked:
+                fields.append('Path')
+            if self._ui.checkStartline.checkState() == QtCore.Qt.Checked:
+                fields.append('StartLine')
+            if self._ui.checkStopline.checkState() == QtCore.Qt.Checked:
+                fields.append('StopLine')
+            if self._ui.checkSubFuncCount.checkState() == QtCore.Qt.Checked:
+                fields.append('SubCount')
+            if self._ui.checkSubFuncName.checkState() == QtCore.Qt.Checked:
+                fields.append('SubName')
+            if self._ui.checkCondition.checkState() == QtCore.Qt.Checked:
+                fields.append('Condition')
+            if self._ui.checkLoop.checkState() == QtCore.Qt.Checked:
+                fields.append('Loop')
+            if self._ui.checkLines.checkState() == QtCore.Qt.Checked:
+                fields.append('Lines')
+            if self._ui.checkFuncID.checkState() == QtCore.Qt.Checked:
+                fields.append('FunctionID')
+            if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
+                fields.append('FunctionName')
+            self.act_cscope.outputFuncInfo(os.path.join(srcdir,'funcinfo.txt'),fields)
+            self.act_cscope = None
+            self.setDisabled(False)
+            self._ui.listWidget_Source.addItem("Finished.")
+    def onBtnExtractFuncDiff(self):
+        pass
+    # private functions
     def _actionCopy(self, param):
         srcdir = param[0]
         dstdir = param[1]
@@ -105,6 +162,26 @@ class MainDialog(QtGui.QDialog):
             self._ui.listWidget.addItem("  Item [{}] fails.".format(filename))
             if self._ui.comboFail.currentIndex() == 1:
                 self._worker.addJob((srcdir, dstdir, filename),'Copy')
+    def _actionCscope(self, param):
+        srcdir = param[0]
+        params = []
+        params.append(os.path.join(self._selfpath,'bin','cscope.exe'))
+        params.append('-Rbcu')
+        self._runCmd(params)
+    def _actionCtags(self, param):
+        srcdir = param[0]
+        params = []
+        params.append(os.path.join(self._selfpath,'bin','ctags.exe'))
+        params.append('-R')
+        self._runCmd(params)
+    @staticmethod
+    def _runCmd(param):
+        ret = True
+        try:
+            subprocess.check_call(param)
+        except subprocess.CalledProcessError as e:
+            ret = False
+        return ret
     @staticmethod
     def _mkdir(filepath):
         head, tail = os.path.split(filepath)
@@ -115,13 +192,13 @@ class MainDialog(QtGui.QDialog):
             os.makedirs(head, exist_ok=True)
 
 if __name__ == '__main__':
-    import sys
+    #logutil.newConf((tagparser.LOGNAME,guess.LOGNAME,multithread.LOGNAME,))
     app = QtGui.QApplication(sys.argv)
-    ##Change UI Language based on system
-    #locale = QtCore.QLocale.system()
-    #trans = QtCore.QTranslator()
-    #trans.load("toolbox_{}.qm".format(locale.name()))
-    #app.installTranslator(trans)
+    #Change UI Language based on system
+    locale = QtCore.QLocale.system()
+    trans = QtCore.QTranslator()
+    trans.load(os.path.join(logutil.scriptPath(_selffile),'qm',"toolbox_{}.qm".format(locale.name())))
+    app.installTranslator(trans)
 
     mw  = MainDialog()
     mw.setupUi()
