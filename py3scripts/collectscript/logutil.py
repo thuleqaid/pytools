@@ -124,7 +124,7 @@ datefmt=
 #3#%(thread)d
 #3#%(threadName)s 
 '''
-    fh = open(filename, 'w', encoding='utf-8')
+    fh = open(os.path.join(scriptPath(_selffile), filename), 'w', encoding='utf-8')
     fh.write('''
 ##uncomment the following line will overwrite logdir's value in the python script
 #[DEFAULT]
