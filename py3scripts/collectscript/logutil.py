@@ -19,7 +19,7 @@ if hasattr(sys,'frozen'):
 else:
     _selffile = __file__
 
-def scriptPath(filepath):
+def scriptPath(filepath=_selffile):
     '''
     get dirpath
     @param  __file__
@@ -50,8 +50,8 @@ def singleton(cls, *args, **kw):
 
 @singleton
 class LogUtil(object):
-    LOGDIR=scriptPath(_selffile).replace('\\','/')
-    CONFFILE=os.path.join(scriptPath(_selffile),'logging.conf')
+    LOGDIR=scriptPath().replace('\\','/')
+    CONFFILE=os.path.join(scriptPath(),'logging.conf')
     def __init__(self):
         if os.path.exists(self.CONFFILE) and os.path.isfile(self.CONFFILE):
             logging.config.fileConfig(self.CONFFILE,{'logdir':self.LOGDIR})
@@ -60,7 +60,7 @@ class LogUtil(object):
     def logger(self,logname):
         return logging.getLogger(logname)
 
-def newConf(lognames=('UnKnown',), filename='logging.conf', all_handlers=False):
+def newConf(lognames=('UnKnown',), filename=os.path.join(scriptPath(),'logging.conf'), all_handlers=False):
     str_handler1='''
 [handler_hnull]
 class=NullHandler
@@ -124,7 +124,7 @@ datefmt=
 #3#%(thread)d
 #3#%(threadName)s 
 '''
-    fh = open(os.path.join(scriptPath(_selffile), filename), 'w', encoding='utf-8')
+    fh = open(filename, 'w', encoding='utf-8')
     fh.write('''
 ##uncomment the following line will overwrite logdir's value in the python script
 #[DEFAULT]

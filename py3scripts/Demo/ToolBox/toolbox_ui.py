@@ -139,6 +139,9 @@ class Ui_ToolBoxDialog(object):
         self.gridLayout_4.setObjectName(_fromUtf8("gridLayout_4"))
         self.horizontalLayout_5 = QtGui.QHBoxLayout()
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
+        self.btnGenerateTag = QtGui.QPushButton(self.tab_4)
+        self.btnGenerateTag.setObjectName(_fromUtf8("btnGenerateTag"))
+        self.horizontalLayout_5.addWidget(self.btnGenerateTag)
         self.btnExtractFunc = QtGui.QPushButton(self.tab_4)
         self.btnExtractFunc.setObjectName(_fromUtf8("btnExtractFunc"))
         self.horizontalLayout_5.addWidget(self.btnExtractFunc)
@@ -234,6 +237,7 @@ class Ui_ToolBoxDialog(object):
         QtCore.QObject.connect(self.btnBaseSource, QtCore.SIGNAL(_fromUtf8("clicked()")), ToolBoxDialog.onBtnBaseSource)
         QtCore.QObject.connect(self.btnExtractFunc, QtCore.SIGNAL(_fromUtf8("clicked()")), ToolBoxDialog.onBtnExtractFunc)
         QtCore.QObject.connect(self.btnExtractFuncDiff, QtCore.SIGNAL(_fromUtf8("clicked()")), ToolBoxDialog.onBtnExtractFuncDiff)
+        QtCore.QObject.connect(self.btnGenerateTag, QtCore.SIGNAL(_fromUtf8("clicked()")), ToolBoxDialog.onBtnGenerateTag)
         QtCore.QMetaObject.connectSlotsByName(ToolBoxDialog)
 
     def retranslateUi(self, ToolBoxDialog):
@@ -259,6 +263,7 @@ class Ui_ToolBoxDialog(object):
         self.btnAction_DirKatakana.setText(_translate("ToolBoxDialog", "Action", None))
         self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab_6), _translate("ToolBoxDialog", "Katakana", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("ToolBoxDialog", "Folder", None))
+        self.btnGenerateTag.setText(_translate("ToolBoxDialog", "Generate Tag", None))
         self.btnExtractFunc.setText(_translate("ToolBoxDialog", "Extract", None))
         self.btnExtractFuncDiff.setText(_translate("ToolBoxDialog", "Extract Diff", None))
         self.groupBox_2.setTitle(_translate("ToolBoxDialog", "Output Field", None))

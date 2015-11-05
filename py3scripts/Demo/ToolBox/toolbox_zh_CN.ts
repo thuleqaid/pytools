@@ -97,169 +97,174 @@
 <context>
     <name>ToolBoxDialog</name>
     <message>
-        <location filename="toolbox_ui.py" line="240"/>
+        <location filename="toolbox_ui.py" line="244"/>
         <source>ToolBox</source>
         <translation>工具箱</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="241"/>
+        <location filename="toolbox_ui.py" line="245"/>
         <source>Text</source>
         <translation>文本变换</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="242"/>
+        <location filename="toolbox_ui.py" line="246"/>
         <source>File</source>
         <translation>文件变换</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="243"/>
+        <location filename="toolbox_ui.py" line="247"/>
         <source>Dest Dir</source>
         <translation>输出路径</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="277"/>
+        <location filename="toolbox_ui.py" line="282"/>
         <source>...</source>
         <translation>...</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="245"/>
+        <location filename="toolbox_ui.py" line="249"/>
         <source>Exception Action</source>
         <translation>例外处理</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="246"/>
+        <location filename="toolbox_ui.py" line="250"/>
         <source>Fail Files</source>
         <translation>失败文件</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="253"/>
+        <location filename="toolbox_ui.py" line="257"/>
         <source>Ignore</source>
         <translation>忽略</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="254"/>
+        <location filename="toolbox_ui.py" line="258"/>
         <source>Copy</source>
         <translation>复制</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="251"/>
+        <location filename="toolbox_ui.py" line="255"/>
         <source>UnHit Files</source>
         <translation>未命中文件</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="252"/>
+        <location filename="toolbox_ui.py" line="256"/>
         <source>Excluded Files</source>
         <translation>排除文件</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="259"/>
+        <location filename="toolbox_ui.py" line="263"/>
         <source>Action</source>
         <translation>执行</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="256"/>
+        <location filename="toolbox_ui.py" line="260"/>
         <source>Output Newline</source>
         <translation>输出换行</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="257"/>
+        <location filename="toolbox_ui.py" line="261"/>
         <source>Output Encode</source>
         <translation>输出编码</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="258"/>
+        <location filename="toolbox_ui.py" line="262"/>
         <source>Encode</source>
         <translation>编码</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="260"/>
+        <location filename="toolbox_ui.py" line="264"/>
         <source>Katakana</source>
         <translation>片假名</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="261"/>
+        <location filename="toolbox_ui.py" line="265"/>
         <source>Folder</source>
         <translation>目录变换</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="262"/>
+        <location filename="toolbox_ui.py" line="267"/>
         <source>Extract</source>
         <translation>提取</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="263"/>
+        <location filename="toolbox_ui.py" line="268"/>
         <source>Extract Diff</source>
         <translation>提取差分</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="264"/>
+        <location filename="toolbox_ui.py" line="269"/>
         <source>Output Field</source>
         <translation>输出字段</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="265"/>
+        <location filename="toolbox_ui.py" line="270"/>
         <source>Lines</source>
         <translation>行数</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="266"/>
+        <location filename="toolbox_ui.py" line="271"/>
         <source>Start Line</source>
         <translation>起始行</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="267"/>
+        <location filename="toolbox_ui.py" line="272"/>
         <source>Function Name</source>
         <translation>函数机能名</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="268"/>
+        <location filename="toolbox_ui.py" line="273"/>
         <source>Function ID</source>
         <translation>函数编号</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="269"/>
+        <location filename="toolbox_ui.py" line="274"/>
         <source>Stop Line</source>
         <translation>结束行</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="270"/>
+        <location filename="toolbox_ui.py" line="275"/>
         <source>File Path</source>
         <translation>文件路径</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="271"/>
+        <location filename="toolbox_ui.py" line="276"/>
         <source>Condition</source>
         <translation>分支个数</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="272"/>
+        <location filename="toolbox_ui.py" line="277"/>
         <source>Loop</source>
         <translation>循环个数</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="273"/>
+        <location filename="toolbox_ui.py" line="278"/>
         <source>Sub Function Call Count</source>
         <translation>子函数调用次数</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="274"/>
+        <location filename="toolbox_ui.py" line="279"/>
         <source>Sub Function Names</source>
         <translation>子函数名</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="276"/>
+        <location filename="toolbox_ui.py" line="281"/>
         <source>Base Source Dir</source>
         <translation>原始代码路径</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="278"/>
+        <location filename="toolbox_ui.py" line="283"/>
         <source>New Source Dir</source>
         <translation>新代码路径</translation>
     </message>
     <message>
-        <location filename="toolbox_ui.py" line="279"/>
+        <location filename="toolbox_ui.py" line="284"/>
         <source>Source</source>
         <translation>代码情报</translation>
+    </message>
+    <message>
+        <location filename="toolbox_ui.py" line="266"/>
+        <source>Generate Tag</source>
+        <translation>生成Tag文件</translation>
     </message>
 </context>
 </TS>

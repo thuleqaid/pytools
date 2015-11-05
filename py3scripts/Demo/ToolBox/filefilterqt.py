@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from PyQt4 import QtGui,QtCore
-import sys
 import os
 import configparser
 import re
@@ -16,10 +15,7 @@ class FileFilterQt(QtGui.QWidget):
         self._ui = filefilter_ui.Ui_FileFilterWidget()
         self._ui.setupUi(self)
         self._core = filefilter.FileFilter()
-        if hasattr(sys,'frozen'):
-            self._conffile = os.path.join(logutil.scriptPath(sys.executable),self.CONFIG_FILE)
-        else:
-            self._conffile = os.path.join(logutil.scriptPath(__file__),self.CONFIG_FILE)
+        self._conffile = os.path.join(logutil.scriptPath(),self.CONFIG_FILE)
         self._loadConfig()
     def onBtnSrcDir(self):
         self._ui.editSrcDir.setText(QtGui.QFileDialog.getExistingDirectory(self))

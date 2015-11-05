@@ -34,7 +34,7 @@ def cacheCheck(latestfile, *otherfiles):
 
 class CscopeParser(object):
     PAT_FILE = re.compile(r'^\t@(?P<filename>\S+)$')
-    PAT_LINE = re.compile(r'^(?P<lineno>\d+)\s+(?P<extra>.*)$')
+    PAT_LINE = re.compile(r'^(?P<lineno>\d+)\s*(?P<extra>.*)$')
     PAT_FUNCSTART = re.compile(r'^\t\$(?P<funcname>\S+)$')
     PAT_FUNCSTOP = re.compile(r'^\}$')
     PAT_FUNCCALL = re.compile(r'^\t`(?P<funcname>\S+)$')
@@ -82,9 +82,23 @@ class CscopeParser(object):
             if item.name in funcnames:
                 outlist.append(item)
         return outlist
-    def outputFuncInfo(self, outfile, fields):
+    def getFuncByFile(self, filename, fullpath=False):
+        self._log.log(10, "[{}][{}]".format(filename, fullpath))
+        if fullpath:
+            abspath = os.path.normpath(os.path.abspath(filename))
+        else:
+            abspath = os.path.normpath(os.path.abspath(os.path.join(self._root, filename)))
+        if abspath.startswith(self._root):
+            targetfile = abspath[len(self._root)+1:].replace('\\','/')
+        else:
+            targetfile = ''
+        self._log.log(10, "  Target file[{}]".format(targetfile))
+        outlist = [x for x in self._funcs if x.relpath == targetfile]
+        return outlist
+
+    def outputFuncInfo(self, outfile, fields, funclist=None):
         # 输出函数列表
-        self._log.log(10, outfile)
+        self._log.log(10, "[{}][{}]".format(outfile, ','.join(fields)))
         fh=open(outfile,'w',encoding='utf-8')
         fh.write("#Function")
         for field in fields:
@@ -109,8 +123,9 @@ class CscopeParser(object):
             elif field == 'Lines':
                 fh.write('\tLines')
         fh.write('\n')
-        self._log.log(10, 'Head')
-        for item in self._funcs:
+        if not funclist:
+            funclist = self._funcs
+        for item in funclist:
             fh.write(item.name)
             self._log.log(10, item.name)
             for field in fields:
@@ -157,6 +172,7 @@ class CscopeParser(object):
         lastfile = ''
         startidx = -1
         for idx,line in enumerate(lines):
+            line = line.rstrip()
             ret0 = self.PAT_FILE.search(line)
             ret1 = self.PAT_LINE.search(line)
             ret2 = self.PAT_FUNCSTART.search(line)
@@ -255,7 +271,7 @@ class CscopeParser(object):
             item.extra['lines']=linecount
     def _readCache(self):
         fh = open(os.path.join(self._root, 'cscope.cache'), 'rb')
-        self._funcs = [self.FuncInfo(*x) for x in pickle.load(fh)]
+        self._funcs = [self.FuncInfo(**x) for x in pickle.load(fh)]
         fh.close()
     def _writeCache(self):
         fh = open(os.path.join(self._root, 'cscope.cache'), 'wb')

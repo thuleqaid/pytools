@@ -239,6 +239,13 @@
        <item row="4" column="0" colspan="3">
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
+          <widget class="QPushButton" name="btnGenerateTag">
+           <property name="text">
+            <string>Generate Tag</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="btnExtractFunc">
            <property name="text">
             <string>Extract</string>
@@ -429,8 +436,8 @@
    <slot>onBtnDstDir()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>749</x>
-     <y>54</y>
+     <x>163</x>
+     <y>68</y>
     </hint>
     <hint type="destinationlabel">
      <x>796</x>
@@ -445,8 +452,8 @@
    <slot>onBtnActionDirEncode()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>642</x>
-     <y>273</y>
+     <x>154</x>
+     <y>59</y>
     </hint>
     <hint type="destinationlabel">
      <x>794</x>
@@ -461,8 +468,8 @@
    <slot>onBtnActionDirKatakana()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>547</x>
-     <y>222</y>
+     <x>154</x>
+     <y>59</y>
     </hint>
     <hint type="destinationlabel">
      <x>792</x>
@@ -534,6 +541,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>btnGenerateTag</sender>
+   <signal>clicked()</signal>
+   <receiver>ToolBoxDialog</receiver>
+   <slot>onBtnGenerateTag()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>567</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>795</x>
+     <y>573</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>onBtnDstDir()</slot>
@@ -543,5 +566,6 @@
   <slot>onBtnExtractFuncDiff()</slot>
   <slot>onBtnNewSource()</slot>
   <slot>onBtnBaseSource()</slot>
+  <slot>onBtnGenerateTag()</slot>
  </slots>
 </ui>
