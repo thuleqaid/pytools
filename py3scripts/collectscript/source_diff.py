@@ -10,10 +10,6 @@ from .guess import guessEncode
 from .tagparser import CscopeParser
 
 LOGNAME = 'SourceDiff'
-if hasattr(sys,'frozen'):
-    _selffile = sys.executable
-else:
-    _selffile = __file__
 
 class SourceDiff(object):
     DIFFBIN = os.path.join(scriptPath(),'bin','diff.exe')
@@ -57,6 +53,7 @@ class SourceDiff(object):
             outlist[1].append(os.path.join(item[0],item[1]))
         return outlist
     def report(self, reportfile):
+        rootpath = self._tag._root
         fh = open(reportfile, 'w', encoding='utf_8_sig')
         difffile = self.getDiffFiles()
         difffunc = self.getDiffFuncs()
@@ -66,18 +63,19 @@ class SourceDiff(object):
             funcs = difffunc[key]
             lineidx = 0
             funcidx = 0
+            relpath = key[len(rootpath)+1:]
             while lineidx < len(lines) and funcidx < len(funcs):
                 if lines[lineidx] < int(funcs[funcidx].startline):
-                    fh.write("{}\tToDo\t{}\n".format(key, lines[lineidx]))
+                    fh.write("{0}\t{2}\t{1}\n".format(relpath, 'ToDo', lines[lineidx]))
                     lineidx += 1
                 else:
-                    fh.write("{}\t{}\t{}\t{}\n".format(key, funcs[funcidx].name, funcs[funcidx].startline, funcs[funcidx].stopline))
+                    fh.write("{0}\t{2}\t{1}\t{3}\n".format(relpath, funcs[funcidx].name, funcs[funcidx].startline, funcs[funcidx].stopline))
                     funcidx += 1
             while funcidx < len(funcs):
-                fh.write("{}\t{}\t{}\t{}\n".format(key, funcs[funcidx].name, funcs[funcidx].startline, funcs[funcidx].stopline))
+                fh.write("{0}\t{2}\t{1}\t{3}\n".format(relpath, funcs[funcidx].name, funcs[funcidx].startline, funcs[funcidx].stopline))
                 funcidx += 1
             while lineidx < len(lines):
-                fh.write("{}\tToDo\t{}\n".format(key, lines[lineidx]))
+                fh.write("{0}\t{2}\t{1}\n".format(relpath, 'ToDo', lines[lineidx]))
                 lineidx += 1
     def _getBriefDiff(self, oldsrcdir, newsrcdir):
         path1 = os.path.normpath(os.path.abspath(oldsrcdir))

@@ -124,7 +124,7 @@ class MainDialog(QtGui.QDialog):
                 self.act_cscope = None
                 self.setDisabled(False)
                 self._ui.listWidget_Source.addItem("Finished.")
-                subprocess.Popen(['start',os.path.normpath(srcdir)],shell=True)
+                subprocess.Popen(['explorer.exe',os.path.normpath(srcdir)],shell=True)
             else:
                 self._ui.listWidget_Source.addItem("Tag files not found.")
     def onBtnExtractFuncDiff(self):
@@ -158,7 +158,7 @@ class MainDialog(QtGui.QDialog):
                 sd._tag.outputFuncInfo(os.path.join(newdir,'funcinfo.txt'),fields,[y for x in sd.getDiffFuncs().items() for y in x[1]])
                 sd.report(os.path.join(newdir,'diffinfo.txt'))
                 self._ui.listWidget_Source.addItem("Finished.")
-                subprocess.Popen(['start',os.path.normpath(newdir)],shell=True)
+                subprocess.Popen(['explorer.exe',os.path.normpath(newdir)],shell=True)
             else:
                 self._ui.listWidget_Source.addItem("Tag files not found.")
     # private functions
