@@ -233,7 +233,7 @@ class MainDialog(QtGui.QDialog):
             os.makedirs(head, exist_ok=True)
 
 if __name__ == '__main__':
-    #logutil.newConf((tagparser.LOGNAME,guess.LOGNAME,multithread.LOGNAME,))
+    logutil.logConf()
     app = QtGui.QApplication(sys.argv)
     #Change UI Language based on system
     locale = QtCore.QLocale.system()

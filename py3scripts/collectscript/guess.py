@@ -1,9 +1,10 @@
 # -*- coding:utf-8 -*-
 # VERSION: 0.1
 import codecs
-from .logutil import LogUtil
+from .logutil import LogUtil, registerLogger
 
 LOGNAME = 'GuessEncode'
+registerLogger(LOGNAME)
 
 def openTextFile(encodelist, *args, **kwargs):
     if len(args) > 0:

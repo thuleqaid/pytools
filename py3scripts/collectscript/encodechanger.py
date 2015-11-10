@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
 # VERSION: 0.1
 import os
-from .logutil import LogUtil
+from .logutil import LogUtil, registerLogger
 from .guess import guessEncode
 
 LOGNAME = 'EncodeChanger'
+registerLogger(LOGNAME)
 
 class EncodeChanger(object):
     NEWLINE_CR='\r'

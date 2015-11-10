@@ -7,11 +7,12 @@ import collections
 import pickle
 import threading
 import queue
-from .logutil import LogUtil
+from .logutil import LogUtil, registerLogger
 from .guess import openTextFile
 from .multithread import MultiThread
 
 LOGNAME = 'TagParser'
+registerLogger(LOGNAME)
 
 def cacheCheck(latestfile, *otherfiles):
     logger = LogUtil().logger(LOGNAME)
@@ -279,8 +280,6 @@ class CscopeParser(object):
         fh.close()
 
 if __name__ == '__main__':
-    # 生成log输出配置文件
-    #logutil.newConf(('CscopeParser', 'EncodeChanger'))
     cp = CscopeParser('cscope.out')
     # 例子：查找指定函数所调用的所有函数
     info = cp.getFuncInfo('Input_FSP1_IF', 'API_Renewal_InfoFail')

@@ -1,17 +1,20 @@
 # -*- coding:utf-8 -*-
 # VERSION: 0.1
 import sys
+from argparse import ArgumentParser
 import os
 from threading import Lock
 import logging
 import logging.config
 
 # LogUtil Usage:
-#   1. create log-config file
-#       newConf((logname1, logname2, ...))
-#   2. create log object
+#   1. register logger
+#       registerLogger(logname)
+#   2. create log-config file
+#       logConf() / newConf()
+#   3. create log object
 #       logger = LogUtil().logger(lognameX)
-#   3. output log
+#   4. output log
 #       logger.log(nLvl, msg)
 
 if hasattr(sys,'frozen'):
@@ -60,7 +63,11 @@ class LogUtil(object):
     def logger(self,logname):
         return logging.getLogger(logname)
 
-def newConf(lognames=('UnKnown',), filename=os.path.join(scriptPath(),'logging.conf'), all_handlers=False):
+_registered_logger = set()
+def registerLogger(name):
+    _registered_logger.add(name)
+
+def newConf(filename=os.path.join(scriptPath(),'logging.conf'), all_handlers=False):
     str_handler1='''
 [handler_hnull]
 class=NullHandler
@@ -133,6 +140,10 @@ datefmt=
     fh.write('''
 [loggers]
 keys=''')
+    if len(_registered_logger) < 1:
+        lognames = set(('Unknow',))
+    else:
+        lognames = _registered_logger
     fh.write(','.join(['root',]+list(lognames)))
     fh.write('\n')
     if all_handlers:
@@ -167,6 +178,13 @@ qualname=%s
     fh.write(str_format)
     fh.close()
 
+def logConf():
+    parser = ArgumentParser()
+    parser.add_argument('-l','--log',dest='flag_log',action='store_true',default=False,help='generate log config')
+    options=parser.parse_args()
+    if options.flag_log:
+        newConf()
+
 if __name__=='__main__':
     import sys
     from argparse import ArgumentParser
@@ -178,7 +196,8 @@ if __name__=='__main__':
                       help='output all handlers')
     parser.add_argument('names',nargs='*',help='logger names')
     options=parser.parse_args()
-    args=options.names
+    for logname in options.names:
+        registerLogger(logname)
     outfile=options.outfile
     flag=options.flag_all
-    newConf(args, outfile, flag)
+    newConf(outfile, flag)

@@ -4,12 +4,13 @@ import os
 import re
 import tempfile
 import subprocess
-from .logutil import LogUtil, scriptPath
+from .logutil import LogUtil, scriptPath, registerLogger
 #from .multithread import multithread
 from .guess import guessEncode
 from .tagparser import CscopeParser
 
 LOGNAME = 'SourceDiff'
+registerLogger(LOGNAME)
 
 class SourceDiff(object):
     DIFFBIN = os.path.join(scriptPath(),'bin','diff.exe')
@@ -210,7 +211,6 @@ class SourceDiff(object):
             fh.close()
 
 if __name__ == '__main__':
-    #logutil.newConf((multithread.LOGNAME,guess.LOGNAME,tagparser.LOGNAME,LOGNAME))
     oldsrcdir = 'd:/Fragrans/03IMPLEMENT/0303UnitTest/14_20150921_VSA_AB0100/02_Task/04_SourceCode/01_C0C1/AB0100_SRC_utf8_6608'
     newsrcdir = 'd:/Fragrans/03IMPLEMENT/0303UnitTest/14_20150921_VSA_AB0100/02_Task/04_SourceCode/01_C0C1/AB0100_SRC_utf8_6671'
     sd = SourceDiff(oldsrcdir, newsrcdir)

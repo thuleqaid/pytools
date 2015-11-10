@@ -3,9 +3,10 @@
 import os
 import re
 import shutil
-from .logutil import LogUtil
+from .logutil import LogUtil, registerLogger
 
 LOGNAME = 'FileFilter'
+registerLogger(LOGNAME)
 
 class FileFilter(object):
     def __init__(self):

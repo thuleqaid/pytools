@@ -3,9 +3,10 @@
 import collections
 import threading
 import queue
-from .logutil import LogUtil
+from .logutil import LogUtil, registerLogger
 
 LOGNAME = 'MultiThread'
+registerLogger(LOGNAME)
 
 class MultiThread(object):
     QueueItem = collections.namedtuple('QueueItem', ['group','param'])
@@ -79,7 +80,6 @@ if __name__ == '__main__':
         print("Test1:{}".format(data))
     def test2(data):
         print("Test2:{}".format(data))
-    #logutil.newConf((LOGNAME,))
     mt = MultiThread(3)
     mt.register(test)
     mt.register(test1, 'Test1')
