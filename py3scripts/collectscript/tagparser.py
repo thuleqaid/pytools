@@ -287,7 +287,7 @@ class FormatSource(object):
     #   预编译语句不能出现在一行代码中间（如:根据预编译选项改变if的一个条件）
     #   字符串不能跨行，字符串中不能出现;{}[]()空白符号
     PAT_CMT1 = re.compile(r'//.*')
-    PAT_CMT2 = re.compile(r'/\*(.|\n)*\*/')
+    PAT_CMT2 = re.compile(r'/\*(.|\n)*?\*/')
     PAT_SPACE = re.compile(r'[ \t]+')
     PAT_PRECOMPILE = re.compile(r'^#\s*(if|el|endif|define)')
     PAT_MULTILINE = re.compile(r'\\\n')
