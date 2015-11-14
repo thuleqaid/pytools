@@ -12,7 +12,9 @@ from .guess import openTextFile
 from .multithread import MultiThread
 
 LOGNAME = 'TagParser'
+LOGNAME2 = 'FormatSource'
 registerLogger(LOGNAME)
+registerLogger(LOGNAME2)
 
 def cacheCheck(latestfile, *otherfiles):
     logger = LogUtil().logger(LOGNAME)
@@ -278,6 +280,130 @@ class CscopeParser(object):
         fh = open(os.path.join(self._root, 'cscope.cache'), 'wb')
         pickle.dump([x._asdict() for x in self._funcs], fh)
         fh.close()
+
+class FormatSource(object):
+    # 格式化代码
+    # 制限：
+    #   预编译语句不能出现在一行代码中间（如:根据预编译选项改变if的一个条件）
+    #   字符串不能跨行，字符串中不能出现;{}[]()空白符号
+    PAT_CMT1 = re.compile(r'//.*')
+    PAT_CMT2 = re.compile(r'/\*(.|\n)*\*/')
+    PAT_SPACE = re.compile(r'[ \t]+')
+    PAT_PRECOMPILE = re.compile(r'^#\s*(if|el|endif|define)')
+    PAT_MULTILINE = re.compile(r'\\\n')
+    PAT_OPENBRACE = re.compile(r'(;|\)|\belse|\bdo)\s*{$')
+    def __init__(self):
+        self._log = LogUtil().logger(LOGNAME2)
+    def clean(self, txt):
+        self._log.log(10, 'Input:[{}]'.format(txt))
+        # 删除注释
+        newtxt = self.PAT_CMT1.sub('', txt)
+        newtxt = self.PAT_CMT2.sub('', newtxt)
+        # 删除空行
+        lines = []
+        for line in newtxt.splitlines():
+            line=line.strip()
+            if line != '':
+                lines.append(line)
+        newtxt = '\n'.join(lines)
+        # 合并手动跨行 "\"
+        newtxt = self.PAT_MULTILINE.sub(' ', newtxt)
+        # 删除多余的空白
+        newtxt = self.PAT_SPACE.sub(' ', newtxt)
+        # 根据预编译行将代码分区
+        lines = ''
+        info = {'level1':0,'level2':0,'level3':0}
+        fmttxt = ''
+        for line in newtxt.splitlines():
+            if self.PAT_PRECOMPILE.search(line):
+                fmttxt += self._reformat(lines, info)
+                fmttxt += ('\t' * info['level1']) + line
+                lines = ''
+            else:
+                lines += line + ' '
+        fmttxt += self._reformat(lines, info)
+        # 删除空行
+        lines = []
+        for line in fmttxt.splitlines():
+            line=line.rstrip()
+            if line != '':
+                lines.append(line)
+        newtxt = '\n'.join(lines)
+        self._log.log(10, 'Output:[{}]'.format(newtxt))
+        return newtxt
+    def _reformat(self, txt, info):
+        # 格式化代码
+        # 限制条件：传入的代码(txt)必须是全部由完整语句组成
+        self._log.log(10, 'Input:[{}]'.format(txt))
+        outtxt = ''
+        lastidx = 0
+        i = 0
+        txtlen = len(txt)
+        while i < txtlen:
+            if txt[i] == ';':
+                if info['level2'] == 0 and info['level3'] == 0:
+                    # 语句结束符号
+                    curline = txt[lastidx:(i+1)].strip()
+                    outtxt += '\t' * info['level1'] + curline + '\n'
+                    lastidx = i + 1
+            elif txt[i] == '{':
+                info['level1'] += 1
+                if info['level2'] == 0 and info['level3'] == 0:
+                    if self.PAT_OPENBRACE.search(txt[lastidx:(i+1)]):
+                        # Block开始符号
+                        curline = txt[lastidx:(i+1)].strip()
+                        outtxt += '\t' * (info['level1']-1) + curline + '\n'
+                        lastidx = i + 1
+                    else:
+                        # 变量初期化
+                        j = i + 1
+                        oldinfo = dict(info)
+                        oldinfo['level1'] -= 1
+                        # 查找语句结束符号";"
+                        while j < txtlen and txt[j]!=';':
+                            if txt[j] == '{':
+                                info['level1'] += 1
+                            elif txt[j] == '}':
+                                info['level1'] -= 1
+                            elif txt[j] == '[':
+                                info['level2'] += 1
+                            elif txt[j] == ']':
+                                info['level2'] -= 1
+                            elif txt[j] == '(':
+                                info['level3'] += 1
+                            elif txt[j] == ')':
+                                info['level3'] -= 1
+                            j += 1
+                        curline = txt[lastidx:(j+1)].strip()
+                        outtxt += '\t' * info['level1'] + curline + '\n'
+                        lastidx = j + 1
+                        i = j
+                        for lvlkey in ('level1', 'level2', 'level3'):
+                            if info[lvlkey] != oldinfo[lvlkey]:
+                                self._log.log(10, 'exception in variable initialization')
+                                break
+            elif txt[i] == '}':
+                info['level1'] -= 1
+                if info['level2'] == 0 and info['level3'] == 0:
+                    # Block结束符号
+                    curline = txt[lastidx:(i+1)].strip()
+                    outtxt += '\t' * info['level1'] + curline + '\n'
+                    lastidx = i + 1
+            elif txt[i] == '[':
+                info['level2'] += 1
+            elif txt[i] == ']':
+                info['level2'] -= 1
+            elif txt[i] == '(':
+                info['level3'] += 1
+            elif txt[i] == ')':
+                info['level3'] -= 1
+            else:
+                pass
+            i += 1
+        # txt[lastidx-1] 是一个完整语句的结束（;/{/}），txt[lastidx:]后面是无效内容
+        self._log.log(10, 'Dropped:[{}]'.format(txt[lastidx:]))
+        self._log.log(10, 'Output:[{}]'.format(outtxt))
+        return outtxt
 
 if __name__ == '__main__':
     cp = CscopeParser('cscope.out')
