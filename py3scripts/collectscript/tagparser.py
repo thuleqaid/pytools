@@ -308,7 +308,34 @@ class FormatSource(object):
         newtxt = '\n'.join(lines)
         # 合并手动跨行 "\"
         newtxt = self.PAT_MULTILINE.sub(' ', newtxt)
-        # 删除多余的空白
+        # 插入/删除必要空白
+        ## ++ -- 两侧去空白
+        newtxt = re.sub(r'\s*(\+\+|--)\s*',r'\1',newtxt)
+        ## [] 两侧去空白
+        newtxt = re.sub(r'\s*\[\s*','[',newtxt)
+        newtxt = re.sub(r'\s*\]\s*',']',newtxt)
+        ## ( 左侧去空白，右侧加空白，if/for/while后加空白
+        newtxt = re.sub(r'\s*\(\s*',r'( ',newtxt)
+        newtxt = re.sub(r'\b(if|for|while)\(',r'\1 (', newtxt)
+        ## ) 左侧加空白，右侧去空白
+        newtxt = re.sub(r'\s*\)\s*',r' )',newtxt)
+        ## {} 两侧加入空白
+        newtxt = re.sub(r'\s*\{\s*',r' { ',newtxt)
+        newtxt = re.sub(r'\s*\}\s*',r' } ',newtxt)
+        ## = == <= <<= >= >>= < << > >> != &= &&= |= ||= & && | || 两侧加空白
+        newtxt = re.sub(r'\s*(=+|<+=|>+=|>+|<+|!=|&+=|\|+=|&+|\|+)\s*',r' \1 ',newtxt)
+        ## += -= *= /= ^= 两侧加空白
+        newtxt = re.sub(r'\s*(\+=|-=|\*=|/=|^=)\s*',r' \1 ',newtxt)
+        ## + - 两侧加空白
+        newtxt = re.sub(r'\s*(?<!\+)\+(?!=|\+)\s*',' + ', newtxt)
+        newtxt = re.sub(r'\s*(?<!-)-(?!=|-)\s*',' - ', newtxt)
+        ## * / ^ 两侧加空白
+        newtxt = re.sub(r'\s*(\*|/|^)(?!=)\s*',r' \1 ',newtxt)
+        ## , 左侧去空白，右侧加空白
+        newtxt = re.sub(r'\s*,\s*',r', ',newtxt)
+        ## ; 左侧去空白，右侧加空白
+        newtxt = re.sub(r'\s*;\s*',r'; ',newtxt)
+        # 删除连续的空白
         newtxt = self.PAT_SPACE.sub(' ', newtxt)
         # 根据预编译行将代码分区
         lines = ''
