@@ -4,7 +4,7 @@ from cx_Freeze import setup, Executable
 
 options = {
     'build_exe': {
-        'include_files': ['collectscript/bin','tpl','xmlconf.ini']
+        'include_files': ['collectscript/bin','tpl','xmlconf.ini','Readme.xls']
     }
 }
 
