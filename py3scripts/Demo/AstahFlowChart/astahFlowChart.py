@@ -203,13 +203,13 @@ class AstahFuncPos(object):
         width, height = self.DEFAULT_SIZE[flownode.nodetype]
         if flownode.nodetype in ('normal', 'subroutine'):
             linecnt = flownode.code.count('%0A') + 1
-            if linecnt * 20 + 1 > height:
-                height = linecnt * 20 + 1
+            if linecnt * 14 + 3 > height:
+                height = linecnt * 14 + 3
         elif flownode.nodetype in ('if', 'elif'):
             charlen = len(flownode.code) - flownode.code.count('%') * 2
-            linecnt = (charlen + 49) // 50
-            if linecnt * 20 + 1 > height:
-                height = linecnt * 20 + 1
+            linecnt = (charlen + 51) // 52
+            if linecnt * 14 + 3 > height:
+                height = linecnt * 14 + 3
         return width, height
     def _spanBlock(self, posinfo):
         # 一行中最高的控件的高度 ≤ 区块个数 × 区块高度 － 最后一段折线的高 × 1.2

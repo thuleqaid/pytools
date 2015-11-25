@@ -106,6 +106,14 @@
           <UML:Model.styleProperty key="er.color.entity" value="#FFFFCC"/>
           <UML:Model.styleProperty key="er.entity.type.color.0" value="#FF9999"/>
           <UML:Model.styleProperty key="diagram.editor.rect.anti-aliasing" value="false"/>
+          <UML:Model.styleProperty key="font.name" value="MS PGothic"/>
+          <UML:Model.styleProperty key="font.name.auto" value="false"/>
+          <UML:Model.styleProperty key="font.size" value="12"/>
+          <UML:Model.styleProperty key="font.size.auto" value="true"/>
+          <UML:Model.styleProperty key="font.struckthrough" value="false"/>
+          <UML:Model.styleProperty key="font.style" value="PLAIN"/>
+          <UML:Model.styleProperty key="font.style.auto" value="true"/>
+          <UML:Model.styleProperty key="font.underlined" value="false"/>
         </UML:Model.customStyleMap>
       </XMI.extension>
       <UML:ModelElement.taggedValue>
