@@ -174,8 +174,30 @@ class AstahFuncPos(object):
     DEFAULT_GRID = (600, 200)
     #DEFAULT_HALFLINE保存else分支回到主线时，最后一段折线的高
     DEFAULT_HALFLINE = 50
-    def __init__(self):
+    #DEFAULT_MINGAP保存两行控件之间的最小间距（必须大于DEFAULT_HALFLINE）
+    DEFAULT_MINGAP = 60
+    def __init__(self, settingdict=None):
         self._log = logutil.LogUtil().logger(LOGNAME3)
+        if settingdict:
+            settingdict=dict(settingdict)
+            pat = re.compile(r'(?P<width>\d+),(?P<height>\d+)')
+            for key in self.DEFAULT_SIZE.keys():
+                tmpvalue = settingdict.get(key, '')
+                ret = pat.search(tmpvalue)
+                if ret:
+                    newwidth = int(ret.group('width'))
+                    newheight = int(ret.group('height'))
+                    if newwidth != self.DEFAULT_SIZE[key][0] or newheight != self.DEFAULT_SIZE[key][1]:
+                        self.DEFAULT_SIZE[key] = (newwidth, newheight)
+            tmpvalue = settingdict.get('grid','')
+            ret = pat.search(tmpvalue)
+            if ret:
+                newwidth = int(ret.group('width'))
+                newheight = int(ret.group('height'))
+                if newwidth != self.DEFAULT_GRID[0] or newheight != self.DEFAULT_GRID[1]:
+                    self.DEFAULT_GRID = (newwidth, newheight)
+            self.DEFAULT_MINGAP = int(settingdict.get('mingap',self.DEFAULT_MINGAP))
+            self.DEFAULT_HALFLINE = int(settingdict.get('arrowheight',self.DEFAULT_HALFLINE))
         self._loadTemplate()
     def analyze(self, infile, outpath='.', outfile=None):
         self._log.log(20, infile)
@@ -195,7 +217,7 @@ class AstahFuncPos(object):
         # 计算当前控件需要的区块数
         width, height = self._guessWidgetSize(flownode)
         cnt = height // self.DEFAULT_GRID[1]
-        while self.DEFAULT_GRID[1] * cnt - self.DEFAULT_HALFLINE * 1.2 < height:
+        while self.DEFAULT_GRID[1] * cnt - self.DEFAULT_MINGAP < height:
             cnt += 1
         return cnt
     def _guessWidgetSize(self, flownode):
@@ -836,7 +858,7 @@ if __name__ == '__main__':
     if act3 == '1':
         # 执行功能3：生成xml文件
         print("Generate xml files...")
-        afp = AstahFuncPos()
+        afp = AstahFuncPos(cp.items('setting'))
         ipath = cp.get('action_xml_file','indir')
         opath = cp.get('action_xml_file','outdir')
         for fname in os.listdir(ipath):
