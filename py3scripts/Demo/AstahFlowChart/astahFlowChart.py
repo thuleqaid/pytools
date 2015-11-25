@@ -3,8 +3,6 @@ import os
 import re
 import collections
 import uuid
-import configparser
-import subprocess
 from collectscript import logutil, tagparser, guess
 
 LOGNAME = 'AstahInputCode'
@@ -818,6 +816,10 @@ class AstahFuncPos(object):
         return poslist, maxrow, maxcol, maxdrift
 
 if __name__ == '__main__':
+    import configparser
+    import subprocess
+    import datetime
+    print(datetime.datetime.now())
     logutil.logConf()
     cp = configparser.ConfigParser()
     cp.read_file(open('xmlconf.ini'))
@@ -826,7 +828,7 @@ if __name__ == '__main__':
     act3 = cp.get('action_xml_file','act')
     if act1 == '1':
         # 执行功能1：抽出目标函数代码
-        print("Extract source code files...")
+        print("Extract source code files..."+str(datetime.datetime.now()))
         cscopeout = cp.get('action_input_file','indir')
         if not os.path.isfile(os.path.join(cscopeout, 'cscope.out')):
             # 初次执行功能1时，生成tag文件
@@ -845,9 +847,10 @@ if __name__ == '__main__':
         opath = cp.get('action_input_file','outdir')
         for func in funclist:
             aic.outputFile(func, os.path.join(opath, func+'.txt'))
+        print("Finished...................."+str(datetime.datetime.now()))
     if act2 == '1':
         # 执行功能2：生成中间文件
-        print("Generate middle files...")
+        print("Generate middle files......."+str(datetime.datetime.now()))
         amc = AstahMidCode()
         ipath = cp.get('action_mid_file','indir')
         opath = cp.get('action_mid_file','outdir')
@@ -855,9 +858,10 @@ if __name__ == '__main__':
             if fname.endswith('.txt'):
                 # 取得indir目录中的*.txt文件
                 amc.fmtCode(os.path.join(ipath, fname), os.path.join(opath, os.path.splitext(fname)[0]+'.mid'))
+        print("Finished...................."+str(datetime.datetime.now()))
     if act3 == '1':
         # 执行功能3：生成xml文件
-        print("Generate xml files...")
+        print("Generate xml files.........."+str(datetime.datetime.now()))
         afp = AstahFuncPos(cp.items('setting'))
         ipath = cp.get('action_xml_file','indir')
         opath = cp.get('action_xml_file','outdir')
@@ -865,3 +869,5 @@ if __name__ == '__main__':
             if fname.endswith('.mid'):
                 # 取得indir目录中的*.mid文件
                 afp.analyze(os.path.join(ipath, fname), opath)
+        print("Finished...................."+str(datetime.datetime.now()))
+    print(datetime.datetime.now())
