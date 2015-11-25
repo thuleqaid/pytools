@@ -1,0 +1,3 @@
+                  <UML:StateVertex.outgoing>
+                    <UML:Transition xmi.idref="{id0}"/>
+                  </UML:StateVertex.outgoing>

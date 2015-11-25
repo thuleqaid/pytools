@@ -1,0 +1,2 @@
+              <XMI.field>{pointx}</XMI.field>
+              <XMI.field>{pointy}</XMI.field>

@@ -1,0 +1,6 @@
+        <UML:Stereotype xmi.id="{id1}" name="flow_process" version="0" unSolvedFlag="false" isRoot="false" isLeaf="false" isAbstract="false">
+          <UML:Stereotype.baseClass>ActionState</UML:Stereotype.baseClass>
+          <UML:Stereotype.extendedElement>
+            <JUDE:ModelElement xmi.idref="{id0}" xmlns:JUDE="http://objectclub.esm.co.jp/Jude/namespace/"/>
+          </UML:Stereotype.extendedElement>
+        </UML:Stereotype>

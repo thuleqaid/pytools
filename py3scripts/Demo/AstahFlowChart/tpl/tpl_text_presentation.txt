@@ -1,0 +1,12 @@
+          <JUDE:TextPresentation xmi.id="{id0}" version="0" depth="{depth}" stereotypeVisibility="true" constraintVisibility="true" notationType="0" width="60.0" height="25.0" doAutoResize="false" visibility="true" label="{label}" text="{label}">
+            <JUDE:UPresentation.diagram>
+              <JUDE:Diagram xmi.idref="{module2}"/>
+            </JUDE:UPresentation.diagram>
+            <JUDE:UPresentation.customStyleMap>
+              <JUDE:UPresentation.styleProperty key="fill.color" value="#FFFFCC"/>
+            </JUDE:UPresentation.customStyleMap>
+            <JUDE:JomtPresentation.location>
+              <XMI.field>{pointx}</XMI.field>
+              <XMI.field>{pointy}</XMI.field>
+            </JUDE:JomtPresentation.location>
+          </JUDE:TextPresentation>

@@ -1,0 +1,8 @@
+                <UML:ActionState xmi.id="{id0}" name="{label}" version="0" unSolvedFlag="false" isDynamic="false">
+                  <UML:StateVertex.container>
+                    <UML:CompositeState xmi.idref="{module1}"/>
+                  </UML:StateVertex.container>
+                  <UML:State.entry>
+                    <UML:Action xmi.id="{id1}" name="{label}" version="0" unSolvedFlag="false" isAsynchronous="false" actionType="5"></UML:Action>
+                  </UML:State.entry>
+                </UML:ActionState>

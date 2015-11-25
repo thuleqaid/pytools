@@ -1,0 +1,15 @@
+          <JUDE:ActionStatePresentation xmi.id="{id3}" version="0" depth="{depth}" stereotypeVisibility="false" constraintVisibility="true" notationType="1" width="{width}" height="{height}" doAutoResize="false" visibility="true" label="{label}" allActionVisibility="true" signalReverse="false">
+            <JUDE:UPresentation.semanticModel>
+              <UML:ActionState xmi.idref="{id0}"/>
+            </JUDE:UPresentation.semanticModel>
+            <JUDE:UPresentation.diagram>
+              <JUDE:Diagram xmi.idref="{module2}"/>
+            </JUDE:UPresentation.diagram>
+            <JUDE:UPresentation.customStyleMap>
+              <JUDE:UPresentation.styleProperty key="fill.color" value="#FFFFCC"/>
+            </JUDE:UPresentation.customStyleMap>
+            <JUDE:JomtPresentation.location>
+              <XMI.field>{x}</XMI.field>
+              <XMI.field>{y}</XMI.field>
+            </JUDE:JomtPresentation.location>
+          </JUDE:ActionStatePresentation>

@@ -1,0 +1,6 @@
+              </UML:CompositeState.subvertex>
+            </UML:CompositeState>
+          </UML:StateMachine.top>
+          <UML:StateMachine.context>
+            <UML:ModelElement xmi.idref="7f-{0}"/>
+          </UML:StateMachine.context>

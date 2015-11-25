@@ -1,0 +1,3 @@
+            <JUDE:UPresentation.clients>
+              <JUDE:TransitionPresentation xmi.idref="{id1}"/>
+            </JUDE:UPresentation.clients>

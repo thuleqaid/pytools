@@ -1,0 +1,11 @@
+                <UML:ActionState xmi.id="{id0}" name="{label}" version="0" unSolvedFlag="false" isDynamic="false">
+                  <UML:ModelElement.stereotype>
+                    <UML:Stereotype xmi.idref="{id1}"/>
+                  </UML:ModelElement.stereotype>
+                  <UML:StateVertex.container>
+                    <UML:CompositeState xmi.idref="{module1}"/>
+                  </UML:StateVertex.container>
+                  <UML:State.entry>
+                    <UML:Action xmi.id="{id2}" name="{label}" version="0" unSolvedFlag="false" isAsynchronous="false" actionType="5"></UML:Action>
+                  </UML:State.entry>
+                </UML:ActionState>

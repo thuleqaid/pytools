@@ -1,0 +1,11 @@
+            <UML:Transition xmi.id="{id0}" name="" version="0" unSolvedFlag="false">
+              <UML:Transition.source>
+                <UML:StateVertex xmi.idref="{node1_id0}"/>
+              </UML:Transition.source>
+              <UML:Transition.target>
+                <UML:StateVertex xmi.idref="{node2_id0}"/>
+              </UML:Transition.target>
+              <UML:Transition.stateMachine>
+                <UML:StateMachine xmi.idref="{module0}"/>
+              </UML:Transition.stateMachine>
+            </UML:Transition>

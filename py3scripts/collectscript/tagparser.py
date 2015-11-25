@@ -316,7 +316,7 @@ class FormatSource(object):
         newtxt = re.sub(r'\s*\]\s*',']',newtxt)
         ## ( 左侧去空白，右侧加空白，if/for/while后加空白
         newtxt = re.sub(r'\s*\(\s*',r'( ',newtxt)
-        newtxt = re.sub(r'\b(if|for|while)\(',r'\1 (', newtxt)
+        newtxt = re.sub(r'\b(if|for|while|return)\(',r'\1 (', newtxt)
         ## ) 左侧加空白，右侧去空白
         newtxt = re.sub(r'\s*\)\s*',r' )',newtxt)
         ## {} 两侧加入空白
