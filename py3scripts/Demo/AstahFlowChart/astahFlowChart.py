@@ -14,9 +14,9 @@ logutil.registerLogger(LOGNAME3)
 # 本文件3个class间关系的说明:
 # 1. 使用[cscope -Rbcu]生成tag文件
 # 2. 生成对象aic = AstahInputCode(tag文件所在路径)
-# 3. 抽出并整理代码，然后返回整理后文件名列表flist = aic.outputFile(函数名, 输出文件名)
-#    当存在同名函数时，len(flist)>1，文件名为输出文件名加上序号
-#    当不存在同名函数时，len(flist)==1，文件名为输出文件名
+# 3. 抽出并整理代码，然后返回整理后文件名列表flist = aic.outputFile(函数名, 输出文件路径)
+#    当存在同名函数时，len(flist)>1，文件名为函数名加上序号
+#    当不存在同名函数时，len(flist)==1，文件名为函数名
 # 4. 生成对象amc = AstahMidCode()
 # 5. 输出中间文件并取得中间文件的文件名midfile = amc.fmtCode(flist[i])
 #    中间文件可用于手动修改普通代码行的分组
@@ -31,16 +31,16 @@ class AstahInputCode(object):
         self._log = logutil.LogUtil().logger(LOGNAME)
         self._root = rootdir
         self._parser = tagparser.CscopeParser(os.path.join(self._root,'cscope.out'))
+        self._funclist = self._parser._funcs
         self._fmt = tagparser.FormatSource()
-    def outputFile(self, funcname, outfile):
+    def outputFile(self, funcname, outpath):
         # 输出代码情报到文件
         outlist = []
         funclist = self._getFuncInfo(funcname)
         funccnt = len(funclist)
         if funccnt > 1:
-            fname,fext = os.path.splitext(outfile)
             for curidx in range(len(funclist)):
-                curoutfile = '{}_{:0>2}{}'.format(fname,curidx+1,fext)
+                curoutfile = os.path.join(outpath, '{}_{:0>2}.txt'.format(funclist[curidx]['label'], curidx+1))
                 fh = open(curoutfile, 'w', encoding='utf-8')
                 fh.write(funclist[curidx]['funcno']+'\n')
                 fh.write(funclist[curidx]['funcname'])
@@ -49,7 +49,7 @@ class AstahInputCode(object):
                 outlist.append(os.path.abspath(curoutfile))
         elif funccnt > 0:
             curidx = 0
-            curoutfile = outfile
+            curoutfile = os.path.join(outpath, funclist[curidx]['label']+'.txt')
             fh = open(curoutfile, 'w', encoding='utf-8')
             fh.write(funclist[curidx]['funcno']+'\n')
             fh.write(funclist[curidx]['funcname'])
@@ -61,7 +61,7 @@ class AstahInputCode(object):
         return outlist
     def _getFuncInfo(self, funcname):
         outlist = []
-        info = self._parser.getFuncInfo(funcname)
+        info = [x for x in self._funclist if x.name == funcname or x.extra.get('funcno','') == funcname]
         for func in info:
             funcname = func.name
             funcno = func.extra.get('funcno','')
@@ -846,7 +846,7 @@ if __name__ == '__main__':
         aic = AstahInputCode(cscopeout)
         opath = cp.get('action_input_file','outdir')
         for func in funclist:
-            aic.outputFile(func, os.path.join(opath, func+'.txt'))
+            aic.outputFile(func, opath)
         print("Finished...................."+str(datetime.datetime.now()))
     if act2 == '1':
         # 执行功能2：生成中间文件
