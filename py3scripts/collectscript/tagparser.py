@@ -7,7 +7,8 @@ import collections
 import pickle
 import threading
 import queue
-from .logutil import LogUtil, registerLogger
+import subprocess
+from .logutil import LogUtil, registerLogger, scriptPath
 from .guess import openTextFile
 from .multithread import MultiThread
 
@@ -67,6 +68,29 @@ class CscopeParser(object):
             selffile = sys.executable
         else:
             selffile = __file__
+        if not os.path.isfile(fullpath):
+            # 自动生成cscope.out
+            curdir = os.path.abspath('.')
+            os.chdir(self._root)
+            if os.name == 'nt':
+                if sys.maxsize > 4294967296: # 2**32
+                    self._log.log(10, "Generating tag file in Win64")
+                    exename = os.path.join(scriptPath(), 'bin', 'cscope_64.exe')
+                else:
+                    self._log.log(10, "Generating tag file in Win32")
+                    exename = os.path.join(scriptPath(), 'bin', 'cscope.exe')
+            else:
+                self._log.log(10, "Generating tag file in Unix")
+                exename = 'cscope'
+            params = [exename, '-Rbcu']
+            try:
+                subprocess.check_call(params)
+            except subprocess.CalledProcessError as e:
+                self._log.log(50, "Error in generating tag file")
+                self._funcs = []
+                return
+            finally:
+                os.chdir(curdir)
         if cacheCheck(os.path.join(self._root,'cscope.cache'), selffile, fullpath):
             self._log.log(10, 'Read Cache')
             self._readCache()   # 从cache文件读入分析结果
