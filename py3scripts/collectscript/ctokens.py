@@ -17,11 +17,278 @@ class CTokens(object):
         fh = openTextFile(('cp932', 'cp936'), filepath, 'r')
         text = fh.read()
         fh.close()
-        self._parse(text)
-    def _parse(self, text):
+        self.parse(text)
+    def parse(self, text):
         self.lexer = lex.lex(object=self)
         self.lexer.input(text)
         self.tokens = list(self.lexer)
+    def format(self):
+        cleantokens = self._cleanTokens()
+        lines = self._format(cleantokens, 0)
+        return lines
+    def _format(self, tokens, indent):
+        lines = []
+        toklen = len(tokens)
+        i = 0
+        while i < toklen:
+            if tokens[i].type == 'PPHASH':
+                j = i
+                while j < toklen and tokens[j].type != 'NEWLINE':
+                    j += 1
+                lines.append(self._oneline(tokens[i:j], indent))
+                i = j + 1
+            elif tokens[i].type == 'IF':
+                sects = []
+                # if以及条件
+                cond_stop = self._pair(tokens, i, 'RPAREN')
+                sects.append((i, cond_stop))
+                nextidx = self._next(tokens, cond_stop + 1)
+                if tokens[nextidx].type == 'LBRACE':
+                    # if:True的处理是Block
+                    cond_stop = self._pair(tokens, nextidx, 'RBRACE')
+                    sects.append((nextidx, cond_stop))
+                else:
+                    # if:True的处理是一条语句
+                    cond_stop = self._pair(tokens, nextidx, 'SEMI')
+                    sects.append((nextidx, cond_stop))
+                nextidx = self._next(tokens, cond_stop + 1)
+                while nextidx < toklen and tokens[nextidx].type == 'ELSE':
+                    nextidx2 = self._next(tokens, nextidx + 1)
+                    if tokens[nextidx2].type == 'IF':
+                        # else if以及条件
+                        cond_stop = self._pair(tokens, i, 'RPAREN')
+                        sects.append((nextidx, cond_stop))
+                        nextidx = self._next(tokens, cond_stop + 1)
+                        if tokens[nextidx].type == 'LBRACE':
+                            # else if:True的处理是Block
+                            cond_stop = self._pair(tokens, nextidx, 'RBRACE')
+                            sects.append((nextidx, cond_stop))
+                        else:
+                            # else if:True的处理是一条语句
+                            cond_stop = self._pair(tokens, nextidx, 'SEMI')
+                            sects.append((nextidx, cond_stop))
+                    else:
+                        # else
+                        sects.append((nextidx, nextidx))
+                        nextidx = self._next(tokens, nextidx + 1)
+                        if tokens[nextidx].type == 'LBRACE':
+                            # else的处理是Block
+                            cond_stop = self._pair(tokens, nextidx, 'RBRACE')
+                            sects.append((nextidx, cond_stop))
+                        else:
+                            # else的处理是一条语句
+                            cond_stop = self._pair(tokens, nextidx, 'SEMI')
+                            sects.append((nextidx, cond_stop))
+                        break
+                    nextidx = self._next(tokens, cond_stop + 1)
+                # if语句
+                tmpline = self._oneline(tokens[sects[0][0]:sects[0][1]+1], indent) + ' {'
+                lines.append(tmpline)
+                # if的处理
+                if tokens[sects[1][0]].type == 'LBRACE':
+                    lines.extend(self._format(tokens[sects[1][0]+1:sects[1][1]], indent + 1))
+                else:
+                    lines.extend(self._format(tokens[sects[1][0]:sects[1][1]+1], indent + 1))
+                lines.append('\t'*indent + '}')
+                j = 2
+                while j < len(sects):
+                    # else[ if]语句
+                    tmpline = ' ' + self._oneline(tokens[sects[j][0]:sects[j][1]+1], 0) + ' {'
+                    lines[-1] += tmpline
+                    # else[ if]的处理
+                    if tokens[sects[j+1][0]].type == 'LBRACE':
+                        lines.extend(self._format(tokens[sects[j+1][0]+1:sects[j+1][1]], indent + 1))
+                    else:
+                        lines.extend(self._format(tokens[sects[j+1][0]:sects[j+1][1]+1], indent + 1))
+                    lines.append('\t'*indent + '}')
+                    j += 2
+                i = sects[-1][1] + 1
+            elif tokens[i].type == 'SWITCH':
+                # switch以及条件
+                cond_stop = self._pair(tokens, i, 'RPAREN')
+                tmpline = self._oneline(tokens[i:cond_stop+1], indent) + ' {'
+                lines.append(tmpline)
+                # switch的范围
+                lbrace = self._next(tokens, cond_stop + 1)
+                rbrace = self._pair(tokens, lbrace, 'RBRACE')
+                # 下一个case/default的位置
+                nextidx1 = self._pair(tokens, lbrace + 1, 'CASE')
+                nextidx2 = self._pair(tokens, lbrace + 1, 'DEFAULT')
+                nextidx = min(nextidx1, nextidx2)
+                cond_stop = self._pair(tokens, nextidx1 + 1, 'COLON')
+                while cond_stop < rbrace:
+                    # case/default语句
+                    tmpline = self._oneline(tokens[nextidx:cond_stop], indent + 1) + ':'
+                    lines.append(tmpline)
+                    # case/default的处理
+                    nextidx1 = self._pair(tokens, cond_stop + 1, 'CASE')
+                    nextidx2 = self._pair(tokens, cond_stop + 1, 'DEFAULT')
+                    nextidx = min(nextidx1, nextidx2)
+                    if nextidx < rbrace:
+                        lines.extend(self._format(tokens[cond_stop+1:nextidx], indent + 2))
+                        cond_stop = self._pair(tokens, nextidx1 + 1, 'COLON')
+                    else:
+                        lines.extend(self._format(tokens[cond_stop+1:rbrace-1], indent + 2))
+                        cond_stop = nextidx
+                tmpline = '\t'*indent + '}'
+                lines.append(tmpline)
+                i = rbrace + 1
+            elif tokens[i].type in ('FOR', 'WHILE'):
+                sects = []
+                # for以及条件
+                cond_stop = self._pair(tokens, i, 'RPAREN')
+                sects.append((i, cond_stop))
+                nextidx = self._next(tokens, cond_stop + 1)
+                if tokens[nextidx].type == 'LBRACE':
+                    # for的处理是Block
+                    cond_stop = self._pair(tokens, nextidx, 'RBRACE')
+                    sects.append((nextidx, cond_stop))
+                else:
+                    # for的处理是一条语句
+                    cond_stop = self._pair(tokens, nextidx, 'SEMI')
+                    sects.append((nextidx, cond_stop))
+                # for语句
+                tmpline = self._oneline(tokens[sects[0][0]:sects[0][1]+1], indent) + ' {'
+                lines.append(tmpline)
+                # for的处理
+                if tokens[sects[1][0]].type == 'LBRACE':
+                    lines.extend(self._format(tokens[sects[1][0]+1:sects[1][1]], indent + 1))
+                else:
+                    lines.extend(self._format(tokens[sects[1][0]:sects[1][1]+1], indent + 1))
+                lines.append('\t'*indent + '}')
+                i = sects[-1][1] + 1
+            elif tokens[i].type == 'DO':
+                sects = []
+                # do
+                sects.append((i, i))
+                nextidx = self._next(tokens, i + 1)
+                if tokens[nextidx].type == 'LBRACE':
+                    # do的处理是Block
+                    cond_stop = self._pair(tokens, nextidx, 'RBRACE')
+                    sects.append((nextidx, cond_stop))
+                else:
+                    # do的处理是一条语句
+                    cond_stop = self._pair(tokens, nextidx, 'SEMI')
+                    sects.append((nextidx, cond_stop))
+                # while
+                nextidx = self._next(tokens, cond_stop + 1)
+                cond_stop = self._pair(tokens, nextidx, 'SEMI')
+                sects.append((nextidx, cond_stop))
+                # do语句
+                tmpline = self._oneline(tokens[sects[0][0]:sects[0][1]+1], indent) + ' {'
+                lines.append(tmpline)
+                # do的处理
+                if tokens[sects[1][0]].type == 'LBRACE':
+                    lines.extend(self._format(tokens[sects[1][0]+1:sects[1][1]], indent + 1))
+                else:
+                    lines.extend(self._format(tokens[sects[1][0]:sects[1][1]+1], indent + 1))
+                tmpline = '\t'*indent + '} ' + self._oneline(tokens[sects[2][0]:sects[2][1]+1], 0)
+                lines.append(tmpline)
+                i = sects[-1][1] + 1
+            elif tokens[i].type == 'NEWLINE':
+                i += 1
+            #elif tokens[i].type == 'RBRACE':
+                ## 不应该有多余的'}'
+                #i += 1
+            else:
+                j = i
+                while j < toklen and (tokens[j].type != 'SEMI' and tokens[j].type != 'LBRACE'):
+                    j += 1
+                if j >= toklen:
+                    break
+                if tokens[j].type == 'SEMI':
+                    # 一行语句
+                    lines.append(self._oneline(tokens[i:j+1], indent))
+                    i = j + 1
+                else:
+                    if tokens[j-1].type == 'EQUALS':
+                        # 变量初期化
+                        while j < toklen and tokens[j].type != 'SEMI':
+                            j += 1
+                        lines.append(self._oneline(tokens[i:j+1], indent))
+                        i = j + 1
+                    else:
+                        # 函数
+                        nextidx = self._pair(tokens, j, 'RBRACE')
+                        # 函数申明
+                        lines.append(self._oneline(tokens[i:j], indent))
+                        lines.append(self._oneline(tokens[j:j+1], indent))
+                        # 函数处理
+                        lines.extend(self._format(tokens[j+1:nextidx], indent + 1))
+                        lines.append(self._oneline(tokens[nextidx:nextidx+1], indent))
+                        i = nextidx + 1
+        return lines
+    def _next(self, tokens, startidx):
+        toklen = len(tokens)
+        j = startidx
+        while j < toklen and tokens[j].type == 'NEWLINE':
+            j += 1
+        return j
+    def _pair(self, tokens, startidx, findtype):
+        toklen = len(tokens)
+        j = startidx
+        paren = [0, 0, 0]
+        # 查找条件结束位置
+        while j < toklen:
+            if tokens[j].type == 'LPAREN':
+                paren[0] += 1
+            elif tokens[j].type == 'RPAREN':
+                paren[0] -= 1
+            elif tokens[j].type == 'LBRACKET':
+                paren[1] += 1
+            elif tokens[j].type == 'RBRACKET':
+                paren[1] -= 1
+            elif tokens[j].type == 'LBRACE':
+                paren[2] += 1
+            elif tokens[j].type == 'RBRACE':
+                paren[2] -= 1
+            if not any(paren) and tokens[j].type == findtype:
+                # 括号匹配，且找到目标种别时退出
+                break
+            j += 1
+        return j
+    def _oneline(self, tokens, indent):
+        tmpline = '\t' * indent
+        subtokens = [x for x in tokens if x.type!='NEWLINE']
+        if len(subtokens) > 0 and subtokens[0].type == 'PPHASH':
+            # 预处理语句：'#'与预处理指令之间不加空格
+            tmpline += '#'
+            subtokens = subtokens[1:]
+        for idx,item in enumerate(subtokens):
+            if item.type in ('COMMA', 'SEMI'):
+                if idx > 0:
+                    # ',',';'前面不加空格
+                    tmpline = tmpline[:-1] + item.value + ' '
+                else:
+                    tmpline += item.value + ' '
+            elif item.type == 'LPAREN':
+                if idx > 0 and subtokens[idx-1].type in ('ID',):
+                    # '('前面是标识符时，认为是函数，中间不加空格
+                    tmpline = tmpline[:-1] + item.value + ' '
+                else:
+                    tmpline += item.value + ' '
+            else:
+                if idx > 0 and subtokens[idx-1].type in ('RPAREN',):
+                    if item.type in ('ID', 'INT_CONST_DEC', 'INT_CONST_OCT', 'INT_CONST_HEX', 'INT_CONST_BIN', 'FLOAT_CONST'):
+                        # ')'后面是标识符或常数时，中间不加空格
+                        tmpline = tmpline[:-1] + item.value + ' '
+                    else:
+                        tmpline += item.value + ' '
+                else:
+                    tmpline += item.value + ' '
+        return tmpline[:-1]
+    def _cleanTokens(self):
+        outlist = []
+        for tok in self.tokens:
+            if tok.type in ('COMMENT1', 'COMMENT2', 'SPANLINE', 'SPACE'):
+                pass
+            else:
+                if tok.type == 'NEWLINE':
+                    if len(outlist) > 0 and outlist[-1].type != 'NEWLINE':
+                        outlist.append(tok)
+                else:
+                    outlist.append(tok)
+        return outlist
 
     ## Reserved keywords
     keywords = (
@@ -48,7 +315,9 @@ class CTokens(object):
         # Newlines
         'NEWLINE',
         # Comments
-        'COMMENT',
+        'COMMENT1', 'COMMENT2',
+        # SPACE
+        'SPACE',
         # Identifiers
         'ID',
         # Type identifiers (identifiers previously defined as
@@ -124,7 +393,7 @@ class CTokens(object):
         r'[ \t]*\#'
         t.type = 'PPHASH'
         return t
-    t_ignore = ' \t'
+    t_SPACE = '[ \t]+'
     # Span lines
     def t_SPANLINE(self, t):
         r'\\\n'
@@ -136,7 +405,10 @@ class CTokens(object):
         t.lexer.lineno += t.value.count("\n")
         return t
     # Comments
-    def t_COMMENT(self, t):
+    def t_COMMENT1(self, t):
+        r'//(.*?\\\n)*.*'
+        return t
+    def t_COMMENT2(self, t):
         r'/\*(.|\n)*?\*/'
         t.lexer.lineno += t.value.count('\n')
         return t
@@ -190,18 +462,40 @@ class CTokens(object):
     t_SEMI              = r';'
     t_COLON             = r':'
     t_ELLIPSIS          = r'\.\.\.'
-    t_LBRACE            = r'\{'
-    t_RBRACE            = r'\}'
+    @TOKEN(r'\{')
+    def t_LBRACE(self, t):
+        return t
+    @TOKEN(r'\}')
+    def t_RBRACE(self, t):
+        return t
     t_STRING_LITERAL    = string_literal
-    t_FLOAT_CONST       = floating_constant
-    t_HEX_FLOAT_CONST   = hex_floating_constant
-    t_INT_CONST_HEX     = hex_constant
-    t_INT_CONST_BIN     = bin_constant
-    t_INT_CONST_OCT     = octal_constant
-    t_INT_CONST_DEC     = decimal_constant
-    t_CHAR_CONST        = char_const
-    t_WCHAR_CONST       = wchar_const
-    t_WSTRING_LITERAL   = wstring_literal
+    @TOKEN(floating_constant)
+    def t_FLOAT_CONST(self, t):
+        return t
+    @TOKEN(hex_floating_constant)
+    def t_HEX_FLOAT_CONST(self, t):
+        return t
+    @TOKEN(hex_constant)
+    def t_INT_CONST_HEX(self, t):
+        return t
+    @TOKEN(bin_constant)
+    def t_INT_CONST_BIN(self, t):
+        return t
+    @TOKEN(octal_constant)
+    def t_INT_CONST_OCT(self, t):
+        return t
+    @TOKEN(decimal_constant)
+    def t_INT_CONST_DEC(self, t):
+        return t
+    @TOKEN(char_const)
+    def t_CHAR_CONST(self, t):
+        return t
+    @TOKEN(wchar_const)
+    def t_WCHAR_CONST(self, t):
+        return t
+    @TOKEN(wstring_literal)
+    def t_WSTRING_LITERAL(self, t):
+        return t
     @TOKEN(identifier)
     def t_ID(self, t):
         t.type = self.keyword_map.get(t.value, "ID")
