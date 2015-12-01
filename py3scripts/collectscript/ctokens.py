@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import os
 from .logutil import LogUtil, registerLogger
 from .guess import openTextFile
 from .ply import lex
@@ -16,8 +17,8 @@ class CTokens(object):
                          'BLOCK4':'}}__tmp__ = DMYBLOCK("#{:0>2}");',
                          'BLOCK5':'DMYBOOL __tmp__ = DMYBLOCK("<{}>");',
                          'BLOCK6':'__tmp__ = DMYBLOCK("@{:0>2}");',
-                         'COND1': '(DMYCOND("{}",',
-                         'COND2': '))',
+                         'COND1': '(DMYCOND(',
+                         'COND2': ',"{}"))',
                         }
     def find_tok_column(self, token):
         last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
@@ -27,7 +28,7 @@ class CTokens(object):
         text = fh.read()
         fh.close()
         if not tagname:
-            tagname = filepath
+            tagname = os.path.basename(filepath)
         self.parse(text, tagname)
     def parse(self, text, tagname=''):
         self.tagname = tagname
@@ -256,7 +257,8 @@ class CTokens(object):
                         lines.extend(self._format(self._next(sects[1][0]), sects[1][1], indent + 1))
                         lines.append(self._oneline(self.tokens[sects[1][1]:sects[1][1]+1], indent))
         return lines
-    def inject(self):
+    def inject(self, outfile='out.c', encode='utf-8', funclist=None):
+        # funclist: [{'function':function-name,'dummy':[(org-function-name, dmy-function-name),...]},...]
         # 查找函数
         bracepair = []
         i = 0
@@ -271,10 +273,21 @@ class CTokens(object):
                     k = self._pair_prev(i-1,'LPAREN')
                     k = self._prev(k, 'ID')
                     j = self._pair_next(i, 'RBRACE')
-                    bracepair.append((i, j, k))
+                    if funclist:
+                        # 只注入指定函数
+                        for funcitem in funclist:
+                            if funcitem['function'] == self.tokens[k].value:
+                                bracepair.append((i, j, k, funcitem['dummy']))
+                                break
+                    else:
+                        # 注入全部函数
+                        bracepair.append((i, j, k))
                 i = j + 1
-        injectlist = []
+        fh = open(outfile, 'w', encoding=encode)
+        lasttokidx = 0
+        # 遍历需要注入的函数
         for item in bracepair:
+            injectlist = []
             blocklist = self._inject(item[0] + 1, item[1])
             # 函数开始的'{'后加入口log
             blocklist.insert(0, (item[0]+1, 'BLOCK5', '{0}:{1}'.format(self.tagname, self.tokens[item[2]].value)))
@@ -285,25 +298,43 @@ class CTokens(object):
                     blocklist.append((i, 'BLOCK6'))
                     rcnt += 1
             # 函数结束的'}'前加返回log
-            blocklist.append((item[1]-1, 'BLOCK6'))
+            blocklist.append((item[1], 'BLOCK6'))
             bidx = 1
-            for idx, item in enumerate(sorted(blocklist)):
-                if item[1] in ('COND1', 'COND2'):
-                    condkey = self._condkey(item[2]) + self._condkey(item[3])
-                    injectlist.append((item[0], self.dmyblock[item[1]].format(condkey)))
-                elif item[1] in ('BLOCK5',):
-                    injectlist.append((item[0], self.dmyblock.get(item[1], item[1]).format(item[2])))
+            for idx, bitem in enumerate(sorted(blocklist)):
+                if bitem[1] in ('COND1', 'COND2'):
+                    condkey = self._condkey(bitem[2]) + self._condkey(bitem[3])
+                    injectlist.append((bitem[0], self.dmyblock[bitem[1]].format(condkey)))
+                elif bitem[1] in ('BLOCK5',):
+                    injectlist.append((bitem[0], self.dmyblock.get(bitem[1], bitem[1]).format(bitem[2])))
                 else:
-                    injectlist.append((item[0], self.dmyblock.get(item[1], item[1]).format(bidx)))
+                    injectlist.append((bitem[0], self.dmyblock.get(bitem[1], bitem[1]).format(bidx)))
                     bidx += 1
-        fh = open('out.c', 'w', encoding='utf-8')
-        ipos = 0
-        ilen = len(injectlist)
-        for idx, item in enumerate(self.tokens):
-            while ipos < ilen and idx == injectlist[ipos][0]:
-                fh.write(injectlist[ipos][1])
-                ipos += 1
-            fh.write(item.value)
+            if funclist:
+                # 指定函数的子函数名变换表
+                replacedict = dict(item[3])
+            else:
+                replacedict = {}
+            ipos = 0
+            ilen = len(injectlist)
+            # 输出到当前注入函数结尾为止
+            while lasttokidx <= item[1]:
+                # 注入内容
+                while ipos < ilen and lasttokidx == injectlist[ipos][0]:
+                    fh.write(injectlist[ipos][1])
+                    ipos += 1
+                if item[0] <= lasttokidx <= item[1]:
+                    # 当前函数范围内，子函数名变换处理
+                    if self.tokens[lasttokidx].type == 'ID':
+                        fh.write(replacedict.get(self.tokens[lasttokidx].value, self.tokens[lasttokidx].value))
+                    else:
+                        fh.write(self.tokens[lasttokidx].value)
+                else:
+                    fh.write(self.tokens[lasttokidx].value)
+                lasttokidx += 1
+        # 输出最后一个注入函数之后到文件结尾的内容
+        while lasttokidx < self.toklen:
+            fh.write(self.tokens[lasttokidx].value)
+            lasttokidx += 1
         fh.close()
     def _inject(self, startidx, stopidx):
         injectlist = []
