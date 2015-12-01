@@ -36,6 +36,7 @@ class CTokens(object):
         self.lexer.input(text)
         self.tokens = list(self.lexer)
         self.toklen = len(self.tokens)
+        self.funcinfo = []  # set in inject()
         for idx, tok in enumerate(self.tokens):
             self._log.log(10, 'idx:{0} {1} col:{2}'.format(idx, str(tok), self.find_tok_column(tok)))
     def format(self):
@@ -257,6 +258,62 @@ class CTokens(object):
                         lines.extend(self._format(self._next(sects[1][0]), sects[1][1], indent + 1))
                         lines.append(self._oneline(self.tokens[sects[1][1]:sects[1][1]+1], indent))
         return lines
+    def _funcinfo(self, bracepair):
+        k = bracepair[2]
+        funcname = self.tokens[k].value
+        # 查找参数列表
+        i = self._next(k, 'LPAREN')
+        j = self._pair_next(i, 'RPAREN')
+        h = self._pair_next(i+1, 'COMMA')
+        if h < 0:
+            h = j
+        if h >= j:
+            cnt = 0
+            while i < j:
+                i = self._next(i)
+                cnt += 1
+            if cnt > 1:
+                paramcnt = 1 # 有1个参数
+            else:
+                paramcnt = 0 # 没有参数
+        else:
+            paramcnt = 2 # 有2个及以上参数
+        paramlist = []
+        paramtxt = ''
+        if paramcnt > 0:
+            i = self._next(i, ignore_space=False)
+            while i < j:
+                if i == h:
+                    paramtxt = paramtxt.strip()
+                    paramlist.append((paramname, paramtxt))
+                    paramtxt = ''
+                    h = self._pair_next(h+1, 'COMMA')
+                    if h < 0:
+                        h = j
+                elif i < h:
+                    if self.tokens[i].type == 'ID':
+                        paramname = self.tokens[i].value
+                    paramtxt += self.tokens[i].value
+                i = self._next(i, ignore_space=False)
+        paramtxt = paramtxt.strip()
+        paramlist.append((paramname, paramtxt))
+        # 查找函数类型
+        h = self._prev(k, 'PPHASH')
+        if h >= 0:
+            h = self._next(h, 'NEWLINE', ignore_newline=False)
+        else:
+            h = 0
+        k = self._prev(k)
+        functype = ''
+        while k >= h:
+            if self.tokens[k].type in ('RBRACE', 'SEMI'):
+                break
+            else:
+                functype = self.tokens[k].value + ' ' + functype
+            k = self._prev(k)
+        functype = functype.strip()
+        paramlist.insert(0, (funcname, functype))
+        return paramlist
     def inject(self, outfile='out.c', encode='utf-8', funclist=None):
         # funclist: [{'function':function-name,'dummy':[(org-function-name, dmy-function-name),...]},...]
         # 查找函数
@@ -286,7 +343,9 @@ class CTokens(object):
         fh = open(outfile, 'w', encoding=encode)
         lasttokidx = 0
         # 遍历需要注入的函数
+        self.funcinfo = []
         for item in bracepair:
+            self.funcinfo.append(self._funcinfo(item))
             injectlist = []
             blocklist = self._inject(item[0] + 1, item[1], [0])
             # 函数开始的'{'后加入口log
