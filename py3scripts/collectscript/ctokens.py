@@ -288,7 +288,7 @@ class CTokens(object):
         # 遍历需要注入的函数
         for item in bracepair:
             injectlist = []
-            blocklist = self._inject(item[0] + 1, item[1])
+            blocklist = self._inject(item[0] + 1, item[1], [0])
             # 函数开始的'{'后加入口log
             blocklist.insert(0, (item[0]+1, 'BLOCK5', '{0}:{1}'.format(self.tagname, self.tokens[item[2]].value)))
             # 函数中所有'return'前加返回log
@@ -336,9 +336,8 @@ class CTokens(object):
             fh.write(self.tokens[lasttokidx].value)
             lasttokidx += 1
         fh.close()
-    def _inject(self, startidx, stopidx):
+    def _inject(self, startidx, stopidx, condidx):
         injectlist = []
-        condidx = 0
         i = self._next(startidx-1)
         while 0 <= i < stopidx:
             self._log.log(20, 'start:{0} stop:{1} current:{2}'.format(startidx, stopidx, i))
@@ -396,20 +395,20 @@ class CTokens(object):
                 j = 0
                 while j < len(sects) - 2:
                     injectlist.extend(self._splitcond(sects[j][0], sects[j][1], condidx))
-                    condidx += 1
+                    condidx[0] += 1
                     if self.tokens[sects[j+1][0]].type == 'LBRACE':
                         injectlist.append((sects[j+1][0]+1, 'BLOCK1'))
-                        injectlist.extend(self._inject(self._next(sects[j+1][0]), sects[j+1][1]))
+                        injectlist.extend(self._inject(self._next(sects[j+1][0]), sects[j+1][1], condidx))
                     else:
                         injectlist.append((sects[j+1][0], 'BLOCK3'))
                         injectlist.append((sects[j+1][1]+1, '}}'))
                     j += 2
                 if sects[j][0] != sects[j][1]:
                     injectlist.extend(self._splitcond(sects[j][0], sects[j][1], condidx))
-                    condidx += 1
+                    condidx[0] += 1
                 if self.tokens[sects[j+1][0]].type == 'LBRACE':
                     injectlist.append((sects[j+1][0]+1, 'BLOCK1'))
-                    injectlist.extend(self._inject(self._next(sects[j+1][0]), sects[j+1][1]))
+                    injectlist.extend(self._inject(self._next(sects[j+1][0]), sects[j+1][1], condidx))
                     injectlist.append((sects[-1][1]+1,'BLOCK2'))
                 else:
                     injectlist.append((sects[j+1][0], 'BLOCK3'))
@@ -455,7 +454,7 @@ class CTokens(object):
                     # case/default语句
                     injectlist.append((sects[j][1]+1, 'BLOCK2'))
                     # case/default的处理
-                    injectlist.extend(self._inject(sects[j+1][0],sects[j+1][1]+1))
+                    injectlist.extend(self._inject(sects[j+1][0],sects[j+1][1]+1, condidx))
                     j += 2
             elif self.tokens[i].type in ('FOR', 'WHILE'):
                 sects = []
@@ -476,7 +475,7 @@ class CTokens(object):
                 # for的处理
                 if self.tokens[sects[1][0]].type == 'LBRACE':
                     injectlist.append((sects[1][0]+1, 'BLOCK1'))
-                    injectlist.extend(self._inject(self._next(sects[1][0]),sects[1][1]))
+                    injectlist.extend(self._inject(self._next(sects[1][0]),sects[1][1], condidx))
                     injectlist.append((sects[1][1]+1, 'BLOCK2'))
                 else:
                     injectlist.append((sects[1][0], 'BLOCK3'))
@@ -503,7 +502,7 @@ class CTokens(object):
                 # do的处理
                 if self.tokens[sects[1][0]].type == 'LBRACE':
                     injectlist.append((sects[1][0]+1, 'BLOCK1'))
-                    injectlist.extend(self._inject(self._next(sects[1][0]),sects[1][1]))
+                    injectlist.extend(self._inject(self._next(sects[1][0]),sects[1][1], condidx))
                     injectlist.append((sects[2][1]+1, 'BLOCK2'))
                 else:
                     injectlist.append((sects[1][0], 'BLOCK3'))
@@ -537,11 +536,11 @@ class CTokens(object):
                         i = self._next(nextidx)
                         ## 函数/Block处理
                         injectlist.append((sects[1][0]+1, 'BLOCK1'))
-                        injectlist.extend(self._inject(self._next(sects[1][0]), sects[1][1]))
+                        injectlist.extend(self._inject(self._next(sects[1][0]), sects[1][1], condidx))
                         injectlist.append((sects[1][1], 'BLOCK2'))
         return injectlist
     def _splitcond(self, startidx, stopidx, condidx):
-        self._log.log(10, "SplitCondition: {}-{}@{}".format(startidx, stopidx, condidx))
+        self._log.log(10, "SplitCondition: {}-{}@{}".format(startidx, stopidx, condidx[0]))
         condlist = []
         subidx = 0
         # 查找所有的'(',')','||','&&'
@@ -660,36 +659,36 @@ class CTokens(object):
                     cpos.append(cposidx)
             self._log.log(10, "Adjusted PPAIR:{} CPOS:{}".format(str(ppair), str(cpos)))
             if ppair[cpos[0]-1][0] != ')':
-                condlist.append((ppair[cpos[0]-1][1]+1, 'COND1', condidx, subidx))
-                condlist.append((ppair[cpos[0]][1], 'COND2', condidx, subidx))
+                condlist.append((ppair[cpos[0]-1][1]+1, 'COND1', condidx[0], subidx))
+                condlist.append((ppair[cpos[0]][1], 'COND2', condidx[0], subidx))
             else:
-                condlist.append((ppair[cpos[0]-2][1]+1, 'COND1', condidx, subidx))
-                condlist.append((ppair[cpos[0]-1][1], 'COND2', condidx, subidx))
+                condlist.append((ppair[cpos[0]-2][1]+1, 'COND1', condidx[0], subidx))
+                condlist.append((ppair[cpos[0]-1][1], 'COND2', condidx[0], subidx))
             subidx += 1
             cposidx = 0
             while cposidx < len(cpos) - 1:
                 if cpos[cposidx] + 1 == cpos[cposidx+1]:
                     # 没有用'('/')'包住的中间条件
-                    condlist.append((ppair[cpos[cposidx]][1]+1, 'COND1', condidx, subidx))
-                    condlist.append((ppair[cpos[cposidx+1]][1], 'COND2', condidx, subidx))
+                    condlist.append((ppair[cpos[cposidx]][1]+1, 'COND1', condidx[0], subidx))
+                    condlist.append((ppair[cpos[cposidx+1]][1], 'COND2', condidx[0], subidx))
                 elif ppair[cpos[cposidx]+1][2] > ppair[cpos[cposidx+1]-1][2]:
-                    condlist.append((ppair[cpos[cposidx]+1][1]+1, 'COND1', condidx, subidx))
-                    condlist.append((ppair[cpos[cposidx]+2][1], 'COND2', condidx, subidx))
+                    condlist.append((ppair[cpos[cposidx]+1][1]+1, 'COND1', condidx[0], subidx))
+                    condlist.append((ppair[cpos[cposidx]+2][1], 'COND2', condidx[0], subidx))
                 else:
-                    condlist.append((ppair[cpos[cposidx+1]-2][1]+1, 'COND1', condidx, subidx))
-                    condlist.append((ppair[cpos[cposidx+1]-1][1], 'COND2', condidx, subidx))
+                    condlist.append((ppair[cpos[cposidx+1]-2][1]+1, 'COND1', condidx[0], subidx))
+                    condlist.append((ppair[cpos[cposidx+1]-1][1], 'COND2', condidx[0], subidx))
                 subidx += 1
                 cposidx += 1
             if ppair[cpos[-1]+1][0] != '(':
-                condlist.append((ppair[cpos[-1]][1]+1, 'COND1', condidx, subidx))
-                condlist.append((ppair[cpos[-1]+1][1], 'COND2', condidx, subidx))
+                condlist.append((ppair[cpos[-1]][1]+1, 'COND1', condidx[0], subidx))
+                condlist.append((ppair[cpos[-1]+1][1], 'COND2', condidx[0], subidx))
             else:
-                condlist.append((ppair[cpos[-1]+1][1]+1, 'COND1', condidx, subidx))
-                condlist.append((ppair[cpos[-1]+2][1], 'COND2', condidx, subidx))
+                condlist.append((ppair[cpos[-1]+1][1]+1, 'COND1', condidx[0], subidx))
+                condlist.append((ppair[cpos[-1]+2][1], 'COND2', condidx[0], subidx))
         else:
             # 单一条件
-            condlist.append((ppair[0][1]+1, 'COND1', condidx, subidx))
-            condlist.append((ppair[-1][1], 'COND2', condidx, subidx))
+            condlist.append((ppair[0][1]+1, 'COND1', condidx[0], subidx))
+            condlist.append((ppair[-1][1], 'COND2', condidx[0], subidx))
         return condlist
     def _condkey(self, idx):
         keylist = ['A','B','C','D','E','F','G',
