@@ -15,7 +15,87 @@ LOGNAME2 = "CResult"
 registerLogger(LOGNAME)
 registerLogger(LOGNAME2)
 
+# 使用方法：
+# 1. 代码注入
+#    根据测试用例文件格式不同，需要编写一个类似WinAMS的class
+#    ams = ctest.WinAMS()
+#    ams.test(测试用例设计.csv, 代码路径)
+# 2. 编译运行C工程文件
+#    下面的命令可以在命令行下编译和运行
+#    set devenv="%VS80COMNTOOLS%..\IDE\devenv"
+#    set sln="d:\xxx\xxx.sln"
+#    %devenv% %sln% /Build
+#    %devenv% %sln% /RunExit
+#    下面的命令可以等待10秒
+#    ping -n 10 127.0.0.1 >nul
+# 3. 结果生成
+#    cr = ctest.CResult()
+#    cr.report()
+# 4. 代码还原
+#    restore.bat
+
+# CTest注入时调用的函数代码
+# /* dmy_test.h */
+# #ifndef _DMY_TEST_H_
+# #define _DMY_TEST_H_
+# #ifdef _DMY_TEST_C_
+# #define EXTERN
+# #else
+# #define EXTERN extern
+# #endif
+# #define _dmy_step 3
+# #define _dmy_size (3072)
+# EXTERN char _dmy_record[_dmy_size];
+# EXTERN int _dmy_index;
+# typedef int DMYBOOL;
+# #ifdef __cplusplus
+# extern "C" {
+# #endif
+# 	DMYBOOL	DMYBLOCK(char const * const name);
+# 	DMYBOOL	DMYCOND(DMYBOOL cond, char const * const name);
+# 	void	TestMain( void );
+# #ifdef __cplusplus
+# }
+# #endif
+# #endif
+# /* dmy_test.c */
+# #define _DMY_TEST_C_
+# #include "dmy_test.h"
+# DMYBOOL DMYBLOCK(char const * const name)
+# {
+# 	int i = 0;
+# 	if (name[0] == '<') {
+# 		while (name[i] != '>') {
+# 			_dmy_record[_dmy_index + i] = name[i];
+# 			i++;
+# 		}
+# 		_dmy_record[_dmy_index + i] = name[i];
+# 		_dmy_index += i+1;
+# 	} else {
+# 		for (i = 0; i < _dmy_step; ++i) {
+# 			_dmy_record[_dmy_index + i] = name[i];
+# 		}
+# 		_dmy_index += _dmy_step;
+# 	}
+# 	return 1;
+# }
+# DMYBOOL DMYCOND(DMYBOOL cond, char const * const name)
+# {
+# 	int i = 0;
+# 	for (i = 0; i < _dmy_step - 1; ++i) {
+# 		_dmy_record[_dmy_index + i] = name[i];
+# 	}
+# 	if (cond) {
+# 		_dmy_record[_dmy_index + _dmy_step - 1] = 'T';
+# 	} else {
+# 		_dmy_record[_dmy_index + _dmy_step - 1] = 'F';
+# 	}
+# 	_dmy_index += _dmy_step;
+# 	return cond;
+# }
+
 class CTest(object):
+    # 代码注入
     def __init__(self, tagpath):
         self._log = LogUtil().logger(LOGNAME)
         self.rootpath = tagpath
@@ -52,6 +132,9 @@ class CTest(object):
                 for funcinfo in infolist:
                     injectinfo.setdefault(funcinfo.relpath, {})
                     injectinfo[funcinfo.relpath].setdefault(funcinfo.name, [funcinfo, ()])
+                    subfuncs = list(self.parser.getFuncCall_asdict(funcinfo).keys())
+                    for subf in subfuncs:
+                        appendfunclist.append({'function':subf, 'dummy':[]})
             else:
                 self._log.log(30, 'Function[{}] not found.'.format(funcitem['function']))
         # 文件单位进行注入
@@ -90,11 +173,21 @@ class CTest(object):
             self.funcdetail[fullpath] = token.funcinfo
 
 class CResult(object):
+    # 结果显示
     PTN_COND = re.compile(r'\(DMYCOND\((?P<cond>.+?),&quot;(?P<level>.{2})&quot;\)\)')
     PTN_BLOCK = re.compile(r'(DMYBOOL )?__tmp__ = DMYBLOCK\(&quot;(&lt;(?P<filename>.+?):(?P<funcname>.+?)&gt;|(?P<blockno>.{3}))&quot;\);')
     def __init__(self):
         self._log = LogUtil().logger(LOGNAME2)
-    def report(self, title, outfile, cfiles, resultfile):
+    def report(self, conffile='report.conf'):
+        fh = open(conffile, 'r', encoding='utf-8')
+        lines = fh.readlines()
+        fh.close()
+        title = lines[0].strip()
+        outfile = lines[1].strip()
+        resultfile = lines[2].strip()
+        cfiles = [x.strip() for x in lines[3:]]
+        self._report(title, outfile, cfiles, resultfile)
+    def _report(self, title, outfile, cfiles, resultfile):
         # 生成结果报告
         self._initval = {}
         sourcetab=self._htmlcode(cfiles)
@@ -207,10 +300,10 @@ class CResult(object):
         tabcontent = []
         for idx,cfile in enumerate(cfiles):
             if idx == 0:
-                tabtitle.append('<li class="active"><a href="#tab{index}" data-toggle="tab">{title}</a></li>'.format(index=idx, title=cfile))
+                tabtitle.append('<li class="active"><a href="#tab{index}" data-toggle="tab">{title}</a></li>'.format(index=idx, title=os.path.basename(cfile)))
                 tabcontent.append('<div class="tab-pane active" id="tab{index}"><pre class="bg-danger">{content}</pre></div>'.format(index=idx, content=self._html_block(cfile)))
             else:
-                tabtitle.append('<li><a href="#tab{index}" data-toggle="tab">{title}</a></li>'.format(index=idx, title=cfile))
+                tabtitle.append('<li><a href="#tab{index}" data-toggle="tab">{title}</a></li>'.format(index=idx, title=os.path.basename(cfile)))
                 tabcontent.append('<div class="tab-pane" id="tab{index}"><pre class="bg-danger">{content}</pre></div>'.format(index=idx, content=self._html_block(cfile)))
         outtext = '<div>\n\t<ul class="nav nav-tabs">\n\t\t'+'\n\t\t'.join(tabtitle)+'\n\t</ul>\n\t<div class="tab-content">\n\t\t'+'\n\t\t'.join(tabcontent)+'\n\t</div>\n</div>'
         return outtext
@@ -347,9 +440,63 @@ class CResult(object):
         return outdict
 
 class WinAMS(object):
+    # 本class需要完成的任务：
+    # 1. 测试用例读取，生成测试入口函数
+    # 2. 生成代码还原用的批处理文件(restore.bat)
+    # 3. 生成Html报告的配置文件(report.conf)
+    # WinAMS测试用例文件格式说明
+    # 1. 采用csv格式保存
+    # 2. 第一行第一列是"mod",第二列是目标函数名，第三列是函数编号，第四列是输入个数，第五列是输出个数
+    # 3. 第一列是"#COMMENT"的行，从第二列开始依次是输入和输出变量名，以"@"开头的变量是目标函数的参数，变量名与函数定义一致，以"@@"结尾的变量是目标函数的返回值，变量名是函数名
+    # 4. 第一列是没有内容的行，是测试用例，从第二列开始依次是输入变量的设定值和输出变量的期待值
     CSVInfo = collections.namedtuple('CSVInfo',['funcname','funcno','icount','ocount','stub','var','case','ret','param'])
     def __init__(self):
         pass
+    def test(self, csvfile, rootpath):
+        self._loadCSV(csvfile)
+        inputinfo = [
+                     {'function':self.csvinfo.funcname,
+                      'dummy':self.csvinfo.stub
+                     },
+                    ]
+        ct = CTest(rootpath)
+        ct.inject(inputinfo)
+        for fname in ct.funcdetail.keys():
+            for item in ct.funcdetail[fname]:
+                if item[0][0] == self.csvinfo.funcname:
+                    self._writeTestFunc(fname, item)
+                    break
+        fnames = [os.path.abspath(x) for x in ct.funcdetail.keys()]
+        self._restore(fnames)
+        self._report(fnames)
+    def _report(self, filenames, outfile='report.conf'):
+        resultfile = os.path.abspath(self.csvinfo.funcno+'.txt')
+        htmltitle = self.csvinfo.funcname
+        htmlfile = os.path.abspath(self.csvinfo.funcno + '.html')
+        fh = open(outfile, 'w')
+        fh.write(htmltitle+'\n')
+        fh.write(htmlfile+'\n')
+        fh.write(resultfile+'\n')
+        fh.write('\n'.join([os.path.abspath(os.path.basename(x)) for x in filenames]))
+        fh.close()
+    def _restore(self, filenames, outfile='restore.bat'):
+        curfolder = os.path.abspath('.')
+        curdriver = os.path.splitdrive(curfolder)[0]
+        srcdriver = os.path.splitdrive(os.path.abspath(filenames[0]))[0]
+        fh = open(outfile, 'w')
+        fh.write('@echo off\n')
+        fh.write('{}\n'.format(srcdriver))
+        for fname in filenames:
+            srcfolder,srcfile = os.path.split(fname)
+            fh.write('cd "{}"\n'.format(srcfolder))
+            fh.write('copy {0}.org {0}\n'.format(srcfile)) # 还原代码文件
+            fh.write('copy /B {0} +\n'.format(srcfile))    # 更新还原后代码文件的时间戳
+            fh.write('del {0}.org\n'.format(srcfile))      # 删除备份文件
+        fh.write('{}\n'.format(curdriver))
+        fh.write('cd "{}"\n'.format(curfolder))
+        fh.write('del {}\n'.format(outfile))
+        fh.write('@echo on\n')
+        fh.close()
     def _loadCSV(self, csvfile):
         fh = openTextFile(('cp932','cp936'),csvfile,'r')
         stub = []
@@ -408,7 +555,7 @@ class WinAMS(object):
             for i in range(len(funcdetail)-1):
                 fh.write('    '+funcdetail[i+1][1]+';\n')
         fh.write('    FILE *fp;\n')
-        resultfile = os.path.join(scriptPath(),self.csvinfo.funcno+'.txt').replace('\\','\\\\')
+        resultfile = os.path.abspath(self.csvinfo.funcno+'.txt').replace('\\','\\\\')
         fh.write('    fopen_s(&fp, "{}", "wt");\n'.format(resultfile))
         fh.write('    for (i = 0; i < {}; ++i)\n'.format(len(self.csvinfo.case)))
         fh.write('    {\n')
@@ -453,17 +600,3 @@ class WinAMS(object):
         fh.write('    fclose(fp);\n')
         fh.write('}\n')
         fh.close()
-    def test(self, csvfile, rootpath):
-        self._loadCSV(csvfile)
-        inputinfo = [
-                     {'function':self.csvinfo.funcname,
-                      'dummy':self.csvinfo.stub
-                     },
-                    ]
-        ct = CTest(rootpath)
-        ct.inject(inputinfo)
-        for fname in ct.funcdetail:
-            for item in ct.funcdetail[fname]:
-                if item[0][0] == self.csvinfo.funcname:
-                    self._writeTestFunc(fname, item)
-                    break
