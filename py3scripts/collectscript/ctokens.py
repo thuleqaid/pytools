@@ -259,6 +259,7 @@ class CTokens(object):
                         lines.append(self._oneline(self.tokens[sects[1][1]:sects[1][1]+1], indent))
         return lines
     def _funcinfo(self, bracepair):
+        self._log.log(10, 'Check function info: {}'.format(str(bracepair)))
         k = bracepair[2]
         funcname = self.tokens[k].value
         # 查找参数列表
@@ -281,6 +282,7 @@ class CTokens(object):
         paramlist = []
         paramtxt = ''
         if paramcnt > 0:
+            i = self._next(k, 'LPAREN')
             i = self._next(i, ignore_space=False)
             while i < j:
                 if i == h:
@@ -295,8 +297,8 @@ class CTokens(object):
                         paramname = self.tokens[i].value
                     paramtxt += self.tokens[i].value
                 i = self._next(i, ignore_space=False)
-        paramtxt = paramtxt.strip()
-        paramlist.append((paramname, paramtxt))
+            paramtxt = paramtxt.strip()
+            paramlist.append((paramname, paramtxt))
         # 查找函数类型
         h = self._prev(k, 'PPHASH')
         if h >= 0:

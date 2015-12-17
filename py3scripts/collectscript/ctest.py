@@ -5,6 +5,7 @@ import re
 import json
 import collections
 import csv
+import itertools
 from .logutil import LogUtil, registerLogger, scriptPath
 from .tagparser import CscopeParser
 from .ctokens import CTokens
@@ -33,6 +34,30 @@ registerLogger(LOGNAME2)
 #    cr.report()
 # 4. 代码还原
 #    restore.bat
+# 5. 批量处理
+#    5.1 脚本文件1(batch.py)
+#        from collectscript import ctest
+#        if __name__ == '__main__':
+#            cb = ctest.CBatch()
+#            cb.batch()
+#    5.2 脚本文件2(modify.py)
+#        import sys
+#        from collectscript import ctest
+#        if __name__ == '__main__':
+#            ams = ctest.WinAMS()
+#            ams.test(sys.argv[1], sys.argv[2])
+#    5.3 脚本文件3(result.py)
+#        from collectscript import ctest
+#        if __name__ == '__main__':
+#            cr = ctest.CResult()
+#            cr.report()
+#    5.4 编写batchList.txt
+#        以"#"或者";"开头的行是注释（无效行）
+#        第一有效行为代码路径
+#        第二有效行为工程文件路径
+#        第三有效行开始为测试用例文件
+#    5.5 运行batch.py生成batch.bat
+#    5.6 运行batch.bat
 
 # CTest注入时调用的函数代码
 # /* dmy_test.h */
@@ -102,9 +127,9 @@ class CTest(object):
         self.parser = CscopeParser(os.path.join(tagpath,'cscope.out'))
     def inject(self, funclist):
         # funclist: [{'function':function-name,'dummy':[(org-function-name, dmy-function-name),...]},...]
-        self.funcdetail = {} # key:fullpath, value: CTokens.funcinfo
-        injectinfo = {} # key:relpath
-                        # value:{function-name:[FunctionInfo, renamelist]}
+        self.funcdetail = collections.OrderedDict() # key:fullpath, value: CTokens.funcinfo
+        injectinfo = collections.OrderedDict() # key:relpath
+                                               # value:{function-name:[FunctionInfo, renamelist]}
         appendfunclist = []
         # 根据输入参数，整理代码注入信息
         for funcitem in funclist:
@@ -190,9 +215,11 @@ class CResult(object):
     def _report(self, title, outfile, cfiles, resultfile):
         # 生成结果报告
         self._initval = {}
+        self._coverage = collections.OrderedDict()
         sourcetab=self._htmlcode(cfiles)
         initval=json.dumps(self._initval)
         casetable = self._htmlcase(resultfile)
+        covtable = self._calcCoverage()
         fhtml = open(outfile,'w',encoding='utf-8')
         fhtml.write('''<!DOCTYPE html>
 <html>
@@ -202,12 +229,12 @@ class CResult(object):
 		<title>''')
         fhtml.write(title);
         fhtml.write('''</title>
-		<link type="text/css" href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-		<link type="text/css" href="lib/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
-		<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
-		<script type="text/javascript" src="lib/bootstrap/js/bootstrap.min.js"></script>
-		<link rel="stylesheet" type="text/css" href="lib/datatables/datatables.min.css">
-		<script type="text/javascript" charset="utf8" src="lib/datatables/datatables.min.js"></script>
+		<link type="text/css" href="../lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+		<link type="text/css" href="../lib/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+		<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
+		<script type="text/javascript" src="../lib/bootstrap/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="../lib/datatables/datatables.min.css">
+		<script type="text/javascript" charset="utf8" src="../lib/datatables/datatables.min.js"></script>
 		<script type="text/javascript">
 			function updateCss() {
 				var result = ''')
@@ -285,6 +312,7 @@ class CResult(object):
 			</div>
 ''')
         fhtml.write(sourcetab)
+        fhtml.write(covtable)
         fhtml.write('''			<ul>
 				<li class="col-sm-6"><a href="javascript:void(0)" onclick="toggleCase(true)">Check All</a></li>
 				<li class="col-sm-6"><a href="javascript:void(0)" onclick="toggleCase(false)">Check None</a></li>
@@ -294,6 +322,89 @@ class CResult(object):
 	</body>
 </html>''')
         fhtml.close()
+    def _calcCoverage(self):
+        for filename in self._coverage.keys():
+            for funcname in self._coverage[filename].keys():
+                info = self._coverage[filename][funcname]
+                # C0 Coverage
+                for block in info['block'][:-1]:
+                    if not info['result'].get(block, False):
+                        flag_c0 = False
+                        break
+                else:
+                    flag_c0 = True
+                # MC/DC Coverage
+                for cond in info['cond1']:
+                    if info['result'].get(cond, 0) != 3:
+                        flag_mcdc = False
+                        break
+                else:
+                    flag_mcdc = True
+                # C1 Coverage
+                if flag_c0:
+                    if len(info['cond0']) == len(info['cond1']):
+                        # 没有复合条件，C1和MC/DC等价
+                        flag_c1 = flag_mcdc
+                    else:
+                        if flag_mcdc:
+                            # MC/DC覆盖完全，C1必然覆盖完全
+                            flag_c1 = True
+                        else:
+                            for conds in info['cond0']:
+                                parts = re.split(r'\s*(?:and|or)\s*',conds)
+                                if len(parts) == 1:
+                                    # 不是复合语句
+                                    if info['result'][parts[0]] != 3:
+                                        flag_c1 = False
+                                        break
+                                else:
+                                    result = 0
+                                    values = []
+                                    for part in parts:
+                                        val = info['result'].get(part, 1)
+                                        if val == 3:
+                                            values.append(['True', 'False'])
+                                        elif val == 2:
+                                            values.append(['True'])
+                                        else:
+                                            values.append(['False'])
+                                    for comb in itertools.product(*values):
+                                        tmpcond = conds
+                                        for pidx, part in enumerate(parts):
+                                            tmpcond = tmpcond.replace(part, comb[pidx])
+                                        if eval(tmpcond):
+                                            result = result | 2
+                                        else:
+                                            result = result | 1
+                                        if result == 3:
+                                            break
+                                    else:
+                                        flag_c1 = False
+                                        break
+                            else:
+                                flag_c1 = True
+                else:
+                    # C0覆盖不完全，C1必然覆盖不完全
+                    flag_c1 = False
+                self._coverage[filename][funcname]['coverage'] = (flag_c0, flag_c1, flag_mcdc)
+        outtext = '<table class="table table-hover table-striped">\n\t<thead>\n\t\t<tr><td>File</td><td>Function</td><td>C0</td><td>C1</td><td>MC/DC</td></tr>\n\t</thead>\n\t<tbody>\n'
+        for filename in self._coverage.keys():
+            dotpos = filename.rfind('_')
+            if dotpos > 0:
+                truename = filename[:dotpos] + '.' + filename[dotpos+1:]
+            else:
+                truename = filename
+            for funcname in self._coverage[filename].keys():
+                cov = self._coverage[filename][funcname]['coverage']
+                outtext += '\t\t<tr><td>'+truename+'</td><td>'+funcname+'</td>'
+                for covflag in cov:
+                    if covflag:
+                        outtext += '<td>OK</td>'
+                    else:
+                        outtext += '<td><a href="" class="btn btn-danger">NG</a></td>'
+                outtext += '</tr>\n'
+        outtext += '\t</tbody>\n</table>\n'
+        return outtext
     def _htmlcode(self, cfiles):
         # 生成C代码的HTML区块
         tabtitle = []
@@ -326,33 +437,53 @@ class CResult(object):
             else:
                 if lastfilename != '':
                     # 第二个以及后面的函数开始
-                    outline += self._html_condition(funcline,'cond_{0}_{1}_'.format(lastfilename, lastfuncname)) + '</span>'
+                    outline += self._html_condition(funcline,lastfilename, lastfuncname) + '</span>'
                     funcline = ''
                 # 第一个函数开始
                 lastfilename = filename.replace('.','_')
                 lastfuncname = funcname
                 blockno = '00'
+                self._coverage.setdefault(lastfilename,{}).setdefault(lastfuncname,{'block':[],'cond0':[],'cond1':[],'result':{},'coverage':()})
             bid = 'block_{0}_{1}_{2}'.format(lastfilename, lastfuncname, blockno)
+            self._coverage[lastfilename][lastfuncname]['block'].append(bid)
             self._initval[bid]=False
             if blockno == '00':
                 funcline += source[lastidx:matchblock.span()[0]] + '<span id="{0}">'.format(bid)
             else:
                 funcline += source[lastidx:matchblock.span()[0]] + '</span><span id="{0}">'.format(bid)
             lastidx = matchblock.span()[1]
-        outline += self._html_condition(funcline,'cond_{0}_{1}_'.format(lastfilename, lastfuncname)) + '</span>'
+        outline += self._html_condition(funcline,lastfilename, lastfuncname) + '</span>'
         outline += source[lastidx:]
         return outline
-    def _html_condition(self, text, idprefix):
+    def _html_condition(self, text, curfilename, curfuncname):
         lastidx = 0
         newline = ''
         for matchcond in self.PTN_COND.finditer(text):
             level = matchcond.group('level')
             truecond = matchcond.group('cond')
-            cid = '{0}{1}'.format(idprefix,level)
+            cid = 'cond_{0}_{1}_{2}'.format(curfilename, curfuncname, level)
+            self._coverage[curfilename][curfuncname]['cond1'].append(cid)
             newline += text[lastidx:matchcond.span()[0]] + '<a href="javascript:void(0)" class="btn-default" id="{0}">{1}</a>'.format(cid, truecond)
             lastidx = matchcond.span()[1]
             self._initval[cid]=0
         newline += text[lastidx:]
+        cmtfree = re.sub(r'//.*','',text)
+        cmtfree = re.sub(r'/\*(.|\n)*?\*/','',cmtfree)
+        cmtfree = re.sub(r'\n', ' ', cmtfree)
+        cmtfree = re.sub(r'\s+', ' ', cmtfree)
+        cmtfree = self.PTN_COND.sub(r'DMYCOND(\g<level>)', cmtfree)
+        cmtfree = re.sub(r'\s*&amp;&amp;\s*',r'&&',cmtfree)
+        cmtfree = re.sub(r'\s*\|\|\s*',r'||',cmtfree)
+        cmtfree2 = re.sub(r'\(\s*(DMYCOND\(.+?\))\s*\)',r'\1',cmtfree)
+        while len(cmtfree) != len(cmtfree2):
+            cmtfree = cmtfree2
+            cmtfree2 = re.sub(r'\(\s*(DMYCOND\(.+?\))\s*\)',r'\1',cmtfree)
+        for item in re.finditer(r'[( )]*DMYCOND\(.+?\)([( )]*(&&|\|\|)[( )]*DMYCOND\(.+?\)[( )]*)*',cmtfree):
+            ifcond = item.group(0).strip()
+            ifcond = re.sub(r'DMYCOND\((.+?)\)','cond_'+curfilename+'_'+curfuncname+'_'+r'\1',ifcond)
+            ifcond = re.sub(r'&&', ' and ', ifcond)
+            ifcond = re.sub(r'\|\|', ' or ', ifcond)
+            self._coverage[curfilename][curfuncname]['cond0'].append(ifcond)
         return newline
     def _htmlcase(self, resultfile):
         # 生成测试用例的HTML区块
@@ -379,6 +510,7 @@ class CResult(object):
                     checkvar.append(ret.group('name'))
                 tmplist.append((ret.group('value1'),ret.group('value2')))
         bodylist = []
+        ngcnt = 0
         for item in results:
             testcase = item[0]
             tmplist = item[1]
@@ -392,6 +524,7 @@ class CResult(object):
                 txt = '<tr><td>'+testcase+'</td>' + '<td>OK</td>'
             else:
                 txt = '<tr><td class="text-danger">'+testcase+'</td>' + '<td class="text-danger">NG</td>'
+                ngcnt += 1
             txt += '<td><div class="switch"><input type="checkbox" class="caseswitch" onclick="updateCss()" id="chk-{}" checked="checked" data-info="{}"/></div></td>\n'.format(testcase, json.dumps(caseval).replace('"',"'"))
             for subitem in tmplist:
                 if subitem[0] != subitem[1]:
@@ -400,7 +533,8 @@ class CResult(object):
                     txt+='<td>' + subitem[0] + '(' + subitem[1] + ')</td>'
             txt+='</tr>'
             bodylist.append(txt)
-        outtxt = '<table class="table table-hover table-striped" id="casetable">\n\t<thead>\n\t\t<tr>\n\t\t\t<td>TestCase</td>\n\t\t\t<td>Status</td>\n\t\t\t<td>Show</td>'
+        outtxt = '<p>OK Case: '+str(len(results)-ngcnt)+'/'+str(len(results))+'</p>\n'
+        outtxt += '<table class="table table-hover table-striped" id="casetable">\n\t<thead>\n\t\t<tr>\n\t\t\t<td>TestCase</td>\n\t\t\t<td>Status</td>\n\t\t\t<td>Show</td>'
         for item in checkvar:
             outtxt += '\n\t\t\t<td>' + item + '</td>'
         outtxt += '\n\t\t</tr>\n\t</thead>\n\t<tbody>\n\t\t'
@@ -419,25 +553,89 @@ class CResult(object):
                 filename = text[i+1:j].replace('.','_')
                 funcname = text[j+1:k]
                 part = '_'+filename+'_'+funcname+'_'
-                partlist.append(part)
-                outdict['block'+partlist[-1]+'00'] = True
+                partlist.append((part, filename, funcname))
+                outdict['block'+partlist[-1][0]+'00'] = True
+                self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['block'+partlist[-1][0]+'00'] = True
                 i = k + 1
             elif text[i] == '#':
-                outdict['block'+partlist[-1]+text[i+1:i+3]] = True
+                outdict['block'+partlist[-1][0]+text[i+1:i+3]] = True
+                self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['block'+partlist[-1][0]+text[i+1:i+3]] = True
                 i += 3
             elif text[i] == '@':
-                outdict['block'+partlist[-1]+text[i+1:i+3]] = True
+                outdict['block'+partlist[-1][0]+text[i+1:i+3]] = True
+                self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['block'+partlist[-1][0]+text[i+1:i+3]] = True
                 i += 3
                 partlist.pop()
             else:
-                cid = 'cond'+partlist[-1]+text[i:i+2]
+                cid = 'cond'+partlist[-1][0]+text[i:i+2]
+                self._coverage[partlist[-1][1]][partlist[-1][2]]['result'].setdefault('cond'+partlist[-1][0]+text[i:i+2], 0)
                 outdict.setdefault(cid, 0)
                 if text[i+2] == 'T':
                     outdict[cid] = outdict[cid] | 2
+                    self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['cond'+partlist[-1][0]+text[i:i+2]] = self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['cond'+partlist[-1][0]+text[i:i+2]] | 2
                 else:
                     outdict[cid] = outdict[cid] | 1
+                    self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['cond'+partlist[-1][0]+text[i:i+2]] = self._coverage[partlist[-1][1]][partlist[-1][2]]['result']['cond'+partlist[-1][0]+text[i:i+2]] | 1
                 i += 3
         return outdict
+
+class CBatch(object):
+    # 使用VS2005Professional批量测试
+    def __init__(self, conffile='batchList.txt'):
+        self._loadConf(conffile)
+    def _loadConf(self, conffile):
+        # 读取配置文件
+        #   配置文件第一有效行为代码路径
+        #   配置文件第二有效行为工程文件路径
+        #   配置文件第三有效行开始为测试用例文件
+        fh = openTextFile(('cp932','cp936'), conffile, 'r')
+        self._csv = []
+        rdidx = 0
+        for line in fh.readlines():
+            line = line.strip()
+            if len(line)>0:
+                if line[0] in ('#',';'):
+                    pass
+                else:
+                    rdidx += 1
+                    if rdidx == 1:
+                        self._src = line
+                    elif rdidx == 2:
+                        self._sln = line
+                    else:
+                        if os.path.isfile(line):
+                            self._csv.append(line)
+        fh.close()
+    def batch(self, outfile='batch.bat', rebuild_first=False, waittime=5):
+        fh = open(outfile, 'w')
+        fh.write('''@echo off
+set devenv="%VS80COMNTOOLS%..\\IDE\\devenv"
+set sln="{}"
+
+'''.format(self._sln))
+        for idx,item in enumerate(self._csv):
+            if idx == 0 and rebuild_first:
+                fh.write('''echo {0}
+python modify.py {0} {1}
+%devenv% %sln% /Rebuild
+%devenv% %sln% /RunExit
+ping -n {2} 127.0.0.1 >nul
+python result.py
+call restore.bat
+
+'''.format(item, self._src, waittime))
+            else:
+                fh.write('''echo {0}
+python modify.py {0} {1}
+%devenv% %sln% /Build
+%devenv% %sln% /RunExit
+ping -n {2} 127.0.0.1 >nul
+python result.py
+call restore.bat
+
+'''.format(item, self._src, waittime))
+        fh.write('@echo on\n')
+        fh.close()
 
 class WinAMS(object):
     # 本class需要完成的任务：
@@ -447,8 +645,12 @@ class WinAMS(object):
     # WinAMS测试用例文件格式说明
     # 1. 采用csv格式保存
     # 2. 第一行第一列是"mod",第二列是目标函数名，第三列是函数编号，第四列是输入个数，第五列是输出个数
-    # 3. 第一列是"#COMMENT"的行，从第二列开始依次是输入和输出变量名，以"@"开头的变量是目标函数的参数，变量名与函数定义一致，以"@@"结尾的变量是目标函数的返回值，变量名是函数名
+    # 3. 第一列是"#COMMENT"的行，从第二列开始依次是输入和输出变量名
+    #    以"@"开头的变量是目标函数的参数（目标函数的static变量无法处理，跳过），变量名与函数定义一致
+    #    以"@@"结尾的变量是目标函数的返回值，变量名是函数名
+    #    "函数名@变量名"是dummy函数的参数/返回值/内部static变量的值（无法处理，跳过；解决方法：dummy函数也使用全局变量）
     # 4. 第一列是没有内容的行，是测试用例，从第二列开始依次是输入变量的设定值和输出变量的期待值
+    #    对于数组的整体赋值，值之间用"|"分隔，重复数据用"data|*count"的形式
     CSVInfo = collections.namedtuple('CSVInfo',['funcname','funcno','icount','ocount','stub','var','case','ret','param'])
     def __init__(self):
         pass
@@ -468,18 +670,20 @@ class WinAMS(object):
                     break
         fnames = [os.path.abspath(x) for x in ct.funcdetail.keys()]
         self._restore(fnames)
-        self._report(fnames)
-    def _report(self, filenames, outfile='report.conf'):
-        resultfile = os.path.abspath(self.csvinfo.funcno+'.txt')
+    def _restore(self, filenames, conffile='report.conf', outfile='restore.bat'):
         htmltitle = self.csvinfo.funcname
-        htmlfile = os.path.abspath(self.csvinfo.funcno + '.html')
-        fh = open(outfile, 'w')
+        #htmlfile = os.path.abspath(self.csvinfo.funcno + '.html')
+        #resultfile = os.path.abspath(self.csvinfo.funcno+'.txt')
+        htmlfile = self.csvinfo.funcno + '.html'
+        resultfile = self.csvinfo.funcno+'.txt'
+        fh = open(conffile, 'w')
         fh.write(htmltitle+'\n')
         fh.write(htmlfile+'\n')
         fh.write(resultfile+'\n')
-        fh.write('\n'.join([os.path.abspath(os.path.basename(x)) for x in filenames]))
+        #fh.write('\n'.join([os.path.abspath(os.path.basename(x)) for x in filenames]))
+        fh.write('\n'.join([os.path.basename(x) for x in filenames]))
         fh.close()
-    def _restore(self, filenames, outfile='restore.bat'):
+
         curfolder = os.path.abspath('.')
         curdriver = os.path.splitdrive(curfolder)[0]
         srcdriver = os.path.splitdrive(os.path.abspath(filenames[0]))[0]
@@ -494,6 +698,15 @@ class WinAMS(object):
             fh.write('del {0}.org\n'.format(srcfile))      # 删除备份文件
         fh.write('{}\n'.format(curdriver))
         fh.write('cd "{}"\n'.format(curfolder))
+
+        fh.write('mkdir {}\n'.format(htmltitle))
+        fh.write('del /f /q {}\\*.*\n'.format(htmltitle))
+        fh.write('move {} {}\\\n'.format(conffile, htmltitle))
+        fh.write('move {} {}\\\n'.format(htmlfile,htmltitle))
+        fh.write('move {} {}\\\n'.format(resultfile,htmltitle))
+        for fname in filenames:
+            fh.write('move {} {}\\\n'.format(os.path.basename(fname),htmltitle))
+
         fh.write('del {}\n'.format(outfile))
         fh.write('@echo on\n')
         fh.close()
@@ -510,6 +723,8 @@ class WinAMS(object):
                 # 第一行,提取目标函数名和入出力个数
                 targetfunc = row[1]
                 targetno   = row[2]
+                if len(targetno.strip()) <= 2:
+                    targetno = targetfunc
                 count_in   = int(row[3])
                 count_out  = int(row[4])
             elif row[0] == '%':
@@ -522,7 +737,7 @@ class WinAMS(object):
                         var.append(x.replace('@@','__ret'))
                         retflag = True
                     elif x.startswith('@'):
-                        var.append(x[1:])
+                        var.append(x)
                         paramflag = True
                     else:
                         var.append(x)
@@ -551,9 +766,12 @@ class WinAMS(object):
         # 测试目标函数的参数和返回值
         if self.csvinfo.ret:
             fh.write('    '+funcdetail[0][1]+' '+funcdetail[0][0]+'__ret;\n')
-        if self.csvinfo.param:
-            for i in range(len(funcdetail)-1):
-                fh.write('    '+funcdetail[i+1][1]+';\n')
+        if len(funcdetail) > 1:
+            paramptn = re.compile(r'\b('+'|'.join([x[0] for x in funcdetail[1:]])+r')\b')
+        else:
+            paramptn = re.compile(r'#@#')
+        for i in range(len(funcdetail)-1):
+            fh.write('    '+funcdetail[i+1][1]+';\n')
         fh.write('    FILE *fp;\n')
         resultfile = os.path.abspath(self.csvinfo.funcno+'.txt').replace('\\','\\\\')
         fh.write('    fopen_s(&fp, "{}", "wt");\n'.format(resultfile))
@@ -570,7 +788,37 @@ class WinAMS(object):
             fh.write('        {\n')
             fh.write('            /* TestCase {} */\n'.format(self.csvinfo.case[i][0]))
             for j in range(self.csvinfo.icount):
-                fh.write('            {} = {};\n'.format(self.csvinfo.var[j+1],self.csvinfo.case[i][j+1]))
+                if '|' in self.csvinfo.case[i][j+1]:
+                    vallist = []
+                    for xx in self.csvinfo.case[i][j+1].split('|'):
+                        xx = xx.strip()
+                        if xx.startswith('*'):
+                            xxcnt = int(xx[1:])
+                            xxval = vallist[-1]
+                            vallist.extend([xxval,]*xxcnt)
+                        else:
+                            vallist.append(xx)
+                else:
+                    vallist = [self.csvinfo.case[i][j+1].strip()]
+                if self.csvinfo.var[j+1].startswith('@'):
+                    if paramptn.search(self.csvinfo.var[j+1]):
+                        if len(vallist) == 1:
+                            fh.write('            {} = {};\n'.format(self.csvinfo.var[j+1][1:],vallist[0]))
+                        else:
+                            for xxi in range(len(vallist)):
+                                fh.write('            {}[{}] = {};\n'.format(self.csvinfo.var[j+1][1:],xxi,vallist[xxi]))
+                    else:
+                        # 目标函数的static变量
+                        pass
+                elif '@' in self.csvinfo.var[j+1]:
+                    # dummy函数的参数/返回值/内部static变量的值
+                    pass
+                else:
+                    if len(vallist) == 1:
+                        fh.write('            {} = {};\n'.format(self.csvinfo.var[j+1],vallist[0]))
+                    else:
+                        for xxi in range(len(vallist)):
+                            fh.write('            {}[{}] = {};\n'.format(self.csvinfo.var[j+1],xxi,vallist[xxi]))
             fh.write('        }\n')
         fh.write('        /* call function */\n')
         # 调用测试目标函数
@@ -592,7 +840,19 @@ class WinAMS(object):
             fh.write('        {\n')
             fh.write('            fprintf(fp, ";TestCase {}\\n");\n'.format(self.csvinfo.case[i][0]))
             for j in range(self.csvinfo.ocount):
-                fh.write('            fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1], self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
+                if self.csvinfo.var[self.csvinfo.icount+j+1].startswith('@'):
+                    if self.csvinfo.case[i][self.csvinfo.icount + j + 1].strip() != '':
+                        fh.write('            fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1][1:], self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
+                    else:
+                        fh.write('            fprintf(fp, "{0} = %d\\n", {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1][1:]))
+                elif '@' in self.csvinfo.var[self.csvinfo.icount+j+1]:
+                    # dummy函数的参数/返回值/内部static变量的值
+                    pass
+                else:
+                    if self.csvinfo.case[i][self.csvinfo.icount + j + 1].strip() != '':
+                        fh.write('            fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1], self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
+                    else:
+                        fh.write('            fprintf(fp, "{0} = %d\\n", {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1]))
             fh.write('        }\n')
         fh.write('        /* write track info */\n')
         fh.write('        fprintf(fp, "#Track = %s\\n", _dmy_record);\n')
