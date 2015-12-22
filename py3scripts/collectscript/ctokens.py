@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import os
-from .logutil import LogUtil, registerLogger
+from .logutil import LogUtil, registerLogger, scriptPath
 from .guess import openTextFile
 from .ply import lex
 from .ply.lex import TOKEN
@@ -32,7 +32,7 @@ class CTokens(object):
         self.parse(text, tagname)
     def parse(self, text, tagname=''):
         self.tagname = tagname
-        self.lexer = lex.lex(object=self)
+        self.lexer = lex.lex(object=self,outputdir=scriptPath())
         self.lexer.input(text)
         self.tokens = list(self.lexer)
         self.toklen = len(self.tokens)
@@ -67,6 +67,10 @@ class CTokens(object):
                     # if:True的处理是一条语句
                     cond_stop = self._pair_next(nextidx, 'SEMI')
                     sects.append((nextidx, cond_stop))
+                if cond_stop < 0:
+                    self._log.log(50, 'ILL FORMAT')
+                    lines.append('\t' * indent + "**Error**")
+                    return lines
                 nextidx = self._next(cond_stop)
                 while nextidx < stopidx and self.tokens[nextidx].type == 'ELSE':
                     nextidx2 = self._next(nextidx)

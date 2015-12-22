@@ -652,8 +652,13 @@ class WinAMS(object):
     # 4. 第一列是没有内容的行，是测试用例，从第二列开始依次是输入变量的设定值和输出变量的期待值
     #    对于数组的整体赋值，值之间用"|"分隔，重复数据用"data|*count"的形式
     CSVInfo = collections.namedtuple('CSVInfo',['funcname','funcno','icount','ocount','stub','var','case','ret','param'])
-    def __init__(self):
-        pass
+    def __init__(self, resultdir='csvfile'):
+        # @resultdir funcname, funcno, csvfile
+        resultdir = resultdir.lower()
+        if resultdir not in ('funcname', 'funcno', 'csvfile'):
+            self._resultdir = 'funcname'
+        else:
+            self._resultdir = resultdir
     def test(self, csvfile, rootpath):
         self._loadCSV(csvfile)
         inputinfo = [
@@ -699,13 +704,20 @@ class WinAMS(object):
         fh.write('{}\n'.format(curdriver))
         fh.write('cd "{}"\n'.format(curfolder))
 
-        fh.write('mkdir {}\n'.format(htmltitle))
-        fh.write('del /f /q {}\\*.*\n'.format(htmltitle))
-        fh.write('move {} {}\\\n'.format(conffile, htmltitle))
-        fh.write('move {} {}\\\n'.format(htmlfile,htmltitle))
-        fh.write('move {} {}\\\n'.format(resultfile,htmltitle))
+        if self._resultdir == 'csvfile':
+            resultdir = os.path.splitext(os.path.basename(self.csvfile))[0]
+        elif self._resultdir == 'funcname':
+            resultdir = htmltitle
+        else:
+            resultdir = self.csvinfo.funcno
+        fh.write('mkdir {}\n'.format(resultdir))
+        fh.write('del /f /q {}\\*.*\n'.format(resultdir))
+        fh.write('copy "{}" {}\\\n'.format(self.csvfile, resultdir))
+        fh.write('move {} {}\\\n'.format(conffile, resultdir))
+        fh.write('move {} {}\\\n'.format(htmlfile,resultdir))
+        fh.write('move {} {}\\\n'.format(resultfile,resultdir))
         for fname in filenames:
-            fh.write('move {} {}\\\n'.format(os.path.basename(fname),htmltitle))
+            fh.write('move {} {}\\\n'.format(os.path.basename(fname),resultdir))
 
         fh.write('del {}\n'.format(outfile))
         fh.write('@echo on\n')
@@ -746,6 +758,7 @@ class WinAMS(object):
                 row[0] = rowidx + 1
                 case.append(tuple(row))
         fh.close()
+        self.csvfile = os.path.normpath(os.path.abspath(csvfile))
         self.csvinfo = self.CSVInfo(funcname = targetfunc,
                                     funcno   = targetno,
                                     icount   = count_in,
