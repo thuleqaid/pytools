@@ -7,15 +7,17 @@ import collections
 import pickle
 import threading
 import queue
-import subprocess
 from .logutil import LogUtil, registerLogger, scriptPath
-from .guess import openTextFile
+from .guess import openTextFile, guessEncode, unescape
 from .multithread import MultiThread
+from .multiprocess import MultiProcess
 
-LOGNAME = 'TagParser'
-LOGNAME2 = 'FormatSource'
+LOGNAME = 'CscopeParser'
+LOGNAME2 = 'CtagsParser'
+LOGNAME3 = 'FormatSource'
 registerLogger(LOGNAME)
 registerLogger(LOGNAME2)
+registerLogger(LOGNAME3)
 
 def cacheCheck(latestfile, *otherfiles):
     logger = LogUtil().logger(LOGNAME)
@@ -83,14 +85,13 @@ class CscopeParser(object):
                 self._log.log(10, "Generating tag file in Unix")
                 exename = 'cscope'
             params = [exename, '-Rbcu']
-            try:
-                subprocess.check_call(params)
-            except subprocess.CalledProcessError as e:
+            mp = MultiProcess()
+            mp_ret = mp.call(params)
+            os.chdir(curdir)
+            if mp_ret:
                 self._log.log(50, "Error in generating tag file")
                 self._funcs = []
                 return
-            finally:
-                os.chdir(curdir)
         if cacheCheck(os.path.join(self._root,'cscope.cache'), selffile, fullpath):
             self._log.log(10, 'Read Cache')
             self._readCache()   # 从cache文件读入分析结果
@@ -305,6 +306,72 @@ class CscopeParser(object):
         pickle.dump([x._asdict() for x in self._funcs], fh)
         fh.close()
 
+class CtagsParser(object):
+    TAGINFO = collections.namedtuple('TAGINFO', ['token', 'path', 'line', 'cate', 'extra', 'scope'])
+    PAT_RECORD = re.compile(r'^(?P<token>\S+?)\t(?P<path>[^\t]+)\t(?P<line>(?:\d+|.+?));"\t(?P<cate>.)(\t(?P<extra>.+))?$')
+    def __init__(self, tagfile, encoding=None):
+        # 初始化log
+        self._log = LogUtil().logger(LOGNAME2)
+        # cscope.out文件的生成方法：ctags -R
+        fullpath = os.path.normpath(os.path.abspath(tagfile))
+        self._root, self._tag = os.path.split(fullpath)
+        # 设置文件编码列表
+        self._testcodes = ['cp932','cp936']
+        if encoding and (encoding not in self._testcodes):
+            self._testcodes.insert(0, encoding)
+        self._log.log(20, 'New object[{},{}]'.format(self._root, self._tag))
+        if not os.path.isfile(fullpath):
+            # 自动生成cscope.out
+            curdir = os.path.abspath('.')
+            os.chdir(self._root)
+            if os.name == 'nt':
+                self._log.log(10, "Generating tag file in WinNT")
+                exename = os.path.join(scriptPath(), 'bin', 'ctags.exe')
+            else:
+                self._log.log(10, "Generating tag file in Unix")
+                exename = 'ctags'
+            params = [exename, '-R']
+            mp = MultiProcess()
+            mp_ret = mp.call(params)
+            os.chdir(curdir)
+            if mp_ret:
+                self._log.log(50, "Error in generating tag file")
+                self._funcs = []
+                return
+        self._info = []
+        self._parse()
+    def _parse(self):
+        fullpath = os.path.join(self._root, self._tag)
+        encoding = guessEncode(fullpath, *self._testcodes)[0]
+        fh = open(fullpath ,'r', encoding=encoding, errors='ignore')
+        for line in fh.readlines():
+            line = line.rstrip()
+            patret = self.PAT_RECORD.match(line)
+            if patret:
+                token = patret.group('token')
+                path = patret.group('path')
+                line = patret.group('line')
+                cate = patret.group('cate')
+                extra = patret.group('extra')
+                scope = True
+                if extra:
+                    parts = extra.split('\t')
+                    if parts[-1] == 'file:':
+                        scope = False
+                        parts.pop()
+                else:
+                    parts = []
+                self._info.append(self.TAGINFO(token=token,
+                                               path=path,
+                                               line=unescape(line, encoding),
+                                               cate=cate,
+                                               extra=tuple(parts),
+                                               scope=scope))
+                self._log.log(15, self._info[-1])
+            else:
+                self._log.log(5, 'Miss Match:{}'.format(line))
+        fh.close()
+
 class FormatSource(object):
     # 格式化代码
     # 制限：
@@ -317,7 +384,7 @@ class FormatSource(object):
     PAT_MULTILINE = re.compile(r'\\\n')
     PAT_OPENBRACE = re.compile(r'(;|\)|\belse|\bdo)\s*{$')
     def __init__(self):
-        self._log = LogUtil().logger(LOGNAME2)
+        self._log = LogUtil().logger(LOGNAME3)
     def clean(self, txt):
         self._log.log(10, 'Input:[{}]'.format(txt))
         # 删除注释

@@ -6,6 +6,12 @@ from .logutil import LogUtil, registerLogger
 LOGNAME = 'GuessEncode'
 registerLogger(LOGNAME)
 
+def unescape(txt, encoding):
+    bstr = bytes(txt, encoding)
+    bstr = bstr.replace(b'\\\\',b'\\')
+    bstr = bstr.replace(b'\\/',b'/')
+    return bstr.decode(encoding)
+
 def openTextFile(encodelist, *args, **kwargs):
     if len(args) > 0:
         fname = args[0]
