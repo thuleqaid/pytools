@@ -214,6 +214,12 @@ class CscopeParser(object):
                 self._log.log(5, 'Match filename[{}] at line [{}]'.format(curfile,idx+1))
             elif ret1:
                 curline = ret1.group('lineno')
+                # functions in head file will be "extern"
+                #if curfile.endswith('.h') or (not ret1.group('extra').startswith('static')):
+                if not ret1.group('extra').startswith('static'):
+                    flag_static = False
+                else:
+                    flag_static = True
                 #self._log.log(5, 'Match lineno[{}] at line [{}]'.format(curline,idx+1))
                 if ret5:
                     if curfunc:
