@@ -128,6 +128,7 @@ class CTest(object):
     def inject(self, funclist):
         # funclist: [{'function':function-name,'dummy':[(org-function-name, dmy-function-name),...]},...]
         self.funcdetail = collections.OrderedDict() # key:fullpath, value: CTokens.funcinfo
+        self.staticdetail = collections.OrderedDict() # key:fullpath value: CTokens.staticinfo
         injectinfo = collections.OrderedDict() # key:relpath
                                                # value:{function-name:[FunctionInfo, renamelist]}
         appendfunclist = []
@@ -142,6 +143,7 @@ class CTest(object):
                         if dmy[0] in subfuncs:
                             renamelist.append(tuple(dmy))
                             subfuncs.remove(dmy[0])
+                            subfuncs.append(dmy[1])
                         else:
                             pass
                     injectinfo.setdefault(funcinfo.relpath, {})
@@ -196,6 +198,7 @@ class CTest(object):
                     fh.write(line)
             fh.close()
             self.funcdetail[fullpath] = token.funcinfo
+            self.staticdetail[fullpath] = token.staticinfo
 
 class CResult(object):
     # 结果显示
@@ -668,11 +671,40 @@ class WinAMS(object):
                     ]
         ct = CTest(rootpath)
         ct.inject(inputinfo)
+        appendfuncs = []
+        svarlist = {}
+        flag_stripWinAMS = False
+        for fname in ct.staticdetail.keys():
+            if len(ct.staticdetail[fname].keys()) > 0:
+                appendfuncs.append(os.path.splitext(os.path.basename(fname))[0])
+                for key,value in ct.staticdetail[fname].items():
+                    if key == self.csvinfo.funcname:
+                        varprefix = '@'
+                    else:
+                        varprefix = key+'@'
+                    if flag_stripWinAMS and key.startswith('AMSTB_'):
+                        varprefix2 = 's'+key[len('AMSTB_'):]+'_'
+                    else:
+                        varprefix2 = 's'+key+'_'
+                    for subvalue in value:
+                        csvvar = varprefix + subvalue
+                        if flag_stripWinAMS and subvalue.startswith('AM'):
+                            srcvar = varprefix2 + subvalue[subvalue.find('_')+1:]
+                        else:
+                            srcvar = varprefix2 + subvalue
+                        svarlist.setdefault(fname,[]).append((csvvar, srcvar))
         for fname in ct.funcdetail.keys():
             for item in ct.funcdetail[fname]:
                 if item[0][0] == self.csvinfo.funcname:
-                    self._writeTestFunc(fname, item)
+                    self._writeTestFunc(fname, item, appendfuncs)
+                    testfile = fname
                     break
+        for fname in ct.staticdetail.keys():
+            if len(ct.staticdetail[fname].keys()) > 0:
+                if fname == testfile:
+                    self._writeAccessFunc(fname, svarlist[fname], True)
+                else:
+                    self._writeAccessFunc(fname, svarlist[fname])
         fnames = [os.path.abspath(x) for x in ct.funcdetail.keys()]
         self._restore(fnames)
     def _restore(self, filenames, conffile='report.conf', outfile='restore.bat'):
@@ -768,14 +800,77 @@ class WinAMS(object):
                                     case     = case,
                                     ret      = retflag,
                                     param    = paramflag)
-    def _writeTestFunc(self, modfile, funcdetail):
+    def _writeAccessFunc(self, modfile, svarlist, noinclude=False):
+        fh = openTextFile(('cp932','cp936'), modfile, 'a')
+        funcname = os.path.splitext(os.path.basename(modfile))[0]
+        if not noinclude:
+            fh.write('#include <stdio.h>\n')
+        fh.write('void i{}(int idx)\n'.format(funcname))
+        fh.write('{\n')
+        for i in range(len(self.csvinfo.case)):
+            if i == 0:
+                fh.write('    if (idx == {}) \n'.format(i))
+            else:
+                fh.write('    else if (idx == {}) \n'.format(i))
+            fh.write('    {\n')
+            fh.write('        /* TestCase {} */\n'.format(self.csvinfo.case[i][0]))
+            for j in range(self.csvinfo.icount):
+                if '@' in self.csvinfo.var[j+1]:
+                    varname = self.csvinfo.var[j+1]
+                    for k in range(len(svarlist)):
+                        varname = re.sub(r'\b'+svarlist[k][0]+r'\b', svarlist[k][1], varname)
+                    if varname != self.csvinfo.var[j+1]:
+                        if '|' in self.csvinfo.case[i][j+1]:
+                            vallist = []
+                            for xx in self.csvinfo.case[i][j+1].split('|'):
+                                xx = xx.strip()
+                                if xx.startswith('*'):
+                                    xxcnt = int(xx[1:])
+                                    xxval = vallist[-1]
+                                    vallist.extend([xxval,]*xxcnt)
+                                else:
+                                    vallist.append(xx)
+                        else:
+                            vallist = [self.csvinfo.case[i][j+1].strip()]
+                        if len(vallist) == 1:
+                            fh.write('        {} = {};\n'.format(varname,vallist[0]))
+                        else:
+                            for xxi in range(len(vallist)):
+                                fh.write('        {}[{}] = {};\n'.format(varname,xxi,vallist[xxi]))
+            fh.write('    }\n')
+        fh.write('}\n')
+        fh.write('void o{}(int idx, FILE *fp)\n'.format(funcname))
+        fh.write('{\n')
+        for i in range(len(self.csvinfo.case)):
+            if i == 0:
+                fh.write('    if (idx == {}) \n'.format(i))
+            else:
+                fh.write('    else if (idx == {}) \n'.format(i))
+            fh.write('    {\n')
+            for j in range(self.csvinfo.ocount):
+                if '@' in self.csvinfo.var[self.csvinfo.icount+j+1]:
+                    varname = self.csvinfo.var[self.csvinfo.icount+j+1]
+                    for k in range(len(svarlist)):
+                        varname = re.sub(r'\b'+svarlist[k][0]+r'\b', svarlist[k][1], varname)
+                    if varname != self.csvinfo.var[self.csvinfo.icount+j+1]:
+                        if self.csvinfo.case[i][self.csvinfo.icount + j + 1].strip() != '':
+                            fh.write('        fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(varname, self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
+                        else:
+                            fh.write('        fprintf(fp, "{0} = %d\\n", {0});\n'.format(varname))
+            fh.write('    }\n')
+        fh.write('}\n')
+        fh.close()
+    def _writeTestFunc(self, modfile, funcdetail, appendfuncs):
         fh = open(modfile, 'a', encoding='utf_8_sig')
         fh.write('#include <stdio.h>\n')
         fh.write('#include <stdlib.h>\n')
         fh.write('#include <string.h>\n')
+        for appfunc in appendfuncs:
+            fh.write('extern void i{}(int idx);\n'.format(appfunc))
+            fh.write('extern void o{}(int idx, FILE *fp);\n'.format(appfunc))
         fh.write('void TestMain()\n')
         fh.write('{\n')
-        fh.write('    int i;\n')
+        fh.write('    int _g_test_i_;\n')
         # 测试目标函数的参数和返回值
         if self.csvinfo.ret:
             fh.write('    '+funcdetail[0][1]+' '+funcdetail[0][0]+'__ret;\n')
@@ -788,16 +883,16 @@ class WinAMS(object):
         fh.write('    FILE *fp;\n')
         resultfile = os.path.abspath(self.csvinfo.funcno+'.txt').replace('\\','\\\\')
         fh.write('    fopen_s(&fp, "{}", "wt");\n'.format(resultfile))
-        fh.write('    for (i = 0; i < {}; ++i)\n'.format(len(self.csvinfo.case)))
+        fh.write('    for (_g_test_i_ = 0; _g_test_i_ < {}; ++_g_test_i_)\n'.format(len(self.csvinfo.case)))
         fh.write('    {\n')
         fh.write('        /* initialize */\n')
         fh.write('        _dmy_index = 0;\n')
         fh.write('        memset(&_dmy_record[0], 0, _dmy_size);\n')
         for i in range(len(self.csvinfo.case)):
             if i == 0:
-                fh.write('        if (i == {}) \n'.format(i))
+                fh.write('        if (_g_test_i_ == {}) \n'.format(i))
             else:
-                fh.write('        else if (i == {}) \n'.format(i))
+                fh.write('        else if (_g_test_i_ == {}) \n'.format(i))
             fh.write('        {\n')
             fh.write('            /* TestCase {} */\n'.format(self.csvinfo.case[i][0]))
             for j in range(self.csvinfo.icount):
@@ -833,6 +928,8 @@ class WinAMS(object):
                         for xxi in range(len(vallist)):
                             fh.write('            {}[{}] = {};\n'.format(self.csvinfo.var[j+1],xxi,vallist[xxi]))
             fh.write('        }\n')
+        for appfunc in appendfuncs:
+            fh.write('        i{}(_g_test_i_);\n'.format(appfunc))
         fh.write('        /* call function */\n')
         # 调用测试目标函数
         if self.csvinfo.ret:
@@ -847,9 +944,9 @@ class WinAMS(object):
         fh.write('        /* write output */\n')
         for i in range(len(self.csvinfo.case)):
             if i == 0:
-                fh.write('        if (i == {}) \n'.format(i))
+                fh.write('        if (_g_test_i_ == {}) \n'.format(i))
             else:
-                fh.write('        else if (i == {}) \n'.format(i))
+                fh.write('        else if (_g_test_i_ == {}) \n'.format(i))
             fh.write('        {\n')
             fh.write('            fprintf(fp, ";TestCase {}\\n");\n'.format(self.csvinfo.case[i][0]))
             for j in range(self.csvinfo.ocount):
@@ -867,6 +964,8 @@ class WinAMS(object):
                     else:
                         fh.write('            fprintf(fp, "{0} = %d\\n", {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1]))
             fh.write('        }\n')
+        for appfunc in appendfuncs:
+            fh.write('        o{}(_g_test_i_, fp);\n'.format(appfunc))
         fh.write('        /* write track info */\n')
         fh.write('        fprintf(fp, "#Track = %s\\n", _dmy_record);\n')
         fh.write('    }\n')

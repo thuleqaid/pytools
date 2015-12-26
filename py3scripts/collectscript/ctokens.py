@@ -262,6 +262,78 @@ class CTokens(object):
                         lines.extend(self._format(self._next(sects[1][0]), sects[1][1], indent + 1))
                         lines.append(self._oneline(self.tokens[sects[1][1]:sects[1][1]+1], indent))
         return lines
+    def _staticCheck(self, bracepair):
+        openidx = bracepair[0]
+        closeidx = bracepair[1]
+        funcname = self.tokens[bracepair[2]].value
+        flag_stripWinAMS = False
+        if flag_stripWinAMS and funcname.startswith('AMSTB_'):
+            # 去掉WinAMS增加的前缀
+            varprefix = 's{}_'.format(funcname[len('AMSTB_'):])
+        else:
+            varprefix = 's{}_'.format(funcname)
+        cidx = openidx
+        svardecl = []
+        svarname = []
+        while True:
+            cidx = self._next(cidx, 'STATIC')
+            if not(0 <= cidx < closeidx):
+                break
+            linestart = max(self._prev(cidx, 'LBRACE'), self._prev(cidx,'SEMI'))
+            # static变量声明行起始/结束位置
+            linestart = self._next(linestart)
+            linestop = self._next(cidx, 'SEMI')
+            # 对于同一行声明多个变量的情况，记录","分割的位置
+            sects = []
+            commapos = self._pair_next(linestart, 'COMMA')
+            while 0 <= commapos <= linestop:
+                sects.append(commapos)
+            sects.append(linestop)
+            for sect in sects:
+                ididx = self._pair_prev(sect, 'ID')
+                svarname.append(self.tokens[ididx].value)
+            tokval = ''
+            for x in range(linestart, linestop+1):
+                if self.tokens[x].type not in ('COMMENT1', 'COMMENT2'):
+                    if self.tokens[x].type == 'ID' and self.tokens[x].value in svarname:
+                        if flag_stripWinAMS and self.tokens[x].value.startswith('AM'):
+                            # 去掉WinAMS增加的前缀
+                            tokval += varprefix + self.tokens[x].value[self.tokens[x].value.find('_')+1:]
+                        else:
+                            tokval += varprefix + self.tokens[x].value
+                    else:
+                        tokval += self.tokens[x].value
+                    # self.tokens[x].value = ''
+            self.tokens[linestart].value = ' /* ' + self.tokens[linestart].value
+            self.tokens[linestop].value = self.tokens[linestop].value + ' */ '
+            svardecl.append(tokval)
+        for x in range(openidx, closeidx):
+            if self.tokens[x].type == 'ID' and self.tokens[x].value in svarname:
+                if flag_stripWinAMS and self.tokens[x].value.startswith('AM'):
+                    # 去掉WinAMS增加的前缀
+                    self.tokens[x].value = varprefix + self.tokens[x].value[self.tokens[x].value.find('_')+1:]
+                else:
+                    self.tokens[x].value = varprefix + self.tokens[x].value
+        # 查找函数声明的起始位置，插入static变量声明
+        h = self._prev(bracepair[2], 'PPHASH')
+        if h >= 0:
+            h = self._next(h, 'NEWLINE', ignore_newline=False)
+        else:
+            h = 0
+        k = self._prev(bracepair[2])
+        while k >= h:
+            if self.tokens[k].type in ('RBRACE', 'SEMI'):
+                break
+            k = self._prev(k)
+        else:
+            if k >= 0:
+                k = h
+            else:
+                k = -1
+        k += 1
+        self.tokens[k].value = ' '.join(svardecl) + self.tokens[k].value
+        svarname.insert(0, funcname)
+        return svarname
     def _funcinfo(self, bracepair):
         self._log.log(10, 'Check function info: {}'.format(str(bracepair)))
         k = bracepair[2]
@@ -345,13 +417,17 @@ class CTokens(object):
                     else:
                         # 注入全部函数
                         bracepair.append((i, j, k))
-                i = j + 1
+                    i = j + 1
         fh = open(outfile, 'w', encoding=encode)
         lasttokidx = 0
         # 遍历需要注入的函数
         self.funcinfo = []
+        self.staticinfo = {}
         for item in bracepair:
             self.funcinfo.append(self._funcinfo(item))
+            staticinfo = self._staticCheck(item)
+            if len(staticinfo) > 1:
+                self.staticinfo[staticinfo[0]] = staticinfo[1:]
             injectlist = []
             blocklist = self._inject(item[0] + 1, item[1], [0])
             # 函数开始的'{'后加入口log
