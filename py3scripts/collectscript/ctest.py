@@ -649,11 +649,18 @@ class WinAMS(object):
     # 1. 采用csv格式保存
     # 2. 第一行第一列是"mod",第二列是目标函数名，第三列是函数编号，第四列是输入个数，第五列是输出个数
     # 3. 第一列是"#COMMENT"的行，从第二列开始依次是输入和输出变量名
-    #    以"@"开头的变量是目标函数的参数（目标函数的static变量无法处理，跳过），变量名与函数定义一致
+    #    以"@"开头的变量是目标函数的参数或者内部static变量，参数变量名与函数定义一致
     #    以"@@"结尾的变量是目标函数的返回值，变量名是函数名
-    #    "函数名@变量名"是dummy函数的参数/返回值/内部static变量的值（无法处理，跳过；解决方法：dummy函数也使用全局变量）
+    #    "函数名@变量名"是dummy函数的内部static变量的值
     # 4. 第一列是没有内容的行，是测试用例，从第二列开始依次是输入变量的设定值和输出变量的期待值
     #    对于数组的整体赋值，值之间用"|"分隔，重复数据用"data|*count"的形式
+    # 函数内部static变量的处理方法：
+    # 1. 提取函数内的static变量
+    #    变量声明移动到函数前面
+    #    修改变量名=>s函数名_原变量名
+    # 2. 删除函数内static变量的声明
+    # 3. 文件单位增加get/set函数（生成测试用例函数时自动生成）
+
     CSVInfo = collections.namedtuple('CSVInfo',['funcname','funcno','icount','ocount','stub','var','case','ret','param'])
     def __init__(self, resultdir='csvfile'):
         # @resultdir funcname, funcno, csvfile
