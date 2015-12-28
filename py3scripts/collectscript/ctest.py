@@ -169,18 +169,23 @@ class CTest(object):
         for fname in injectinfo.keys():
             fullpath = os.path.join(self.rootpath, fname)
             token  = CTokens()
-            token.parse_file(fullpath)
+            if os.path.isfile(fullpath+'.org'):
+                fullpath_org = fullpath+'.org'
+            else:
+                fullpath_org = fullpath
+            token.parse_file(fullpath_org)
             inputlist = []
             linelist = set()
             for funcname in injectinfo[fname].keys():
                 inputlist.append({'function':funcname,'dummy':injectinfo[fname][funcname][1]})
                 linelist |= set(range(int(injectinfo[fname][funcname][0].startline),
                                       int(injectinfo[fname][funcname][0].stopline)+1))
-            encode = guessEncode(fullpath, 'cp932', 'cp936')[0]
+            encode = guessEncode(fullpath_org, 'cp932', 'cp936')[0]
             if not encode:
                 encode = 'utf_8_sig'
             # 保存原始文件
-            os.rename(fullpath, fullpath+'.org')
+            if fullpath == fullpath_org:
+                os.rename(fullpath, fullpath+'.org')
             # 注入
             token.inject(fullpath, encode, inputlist)
             # 提取注入内容到新文件用于后期显示
