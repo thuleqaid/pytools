@@ -683,6 +683,7 @@ class WinAMS(object):
                     ]
         ct = CTest(rootpath)
         ct.inject(inputinfo)
+        # 提取static变量的变换列表
         appendfuncs = []
         svarlist = {}
         flag_stripWinAMS = False
@@ -705,18 +706,51 @@ class WinAMS(object):
                         else:
                             srcvar = varprefix2 + subvalue
                         svarlist.setdefault(fname,[]).append((csvvar, srcvar))
+        # 读取测试范围内函数代码
+        pat_cmt1 = re.compile(r'\s*//.*')
+        pat_cmt2 = re.compile(r'\s*/\*.*?\*/\s*')
+        pat_token = re.compile(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b')
+        token_dict = {} # 记录每个注入了代码的文件中的token
+        for fname in ct.funcdetail.keys():
+            fh = open(os.path.basename(fname), 'r', encoding='utf-8')
+            lines = fh.read()
+            fh.close()
+            lines = pat_cmt1.sub('',lines)
+            lines = pat_cmt2.sub('',lines)
+            token_dict[fname] = set(pat_token.findall(lines))
+        # 提取全局变量的读写位置（避免手动添加include或者extern）
+        pat_var = re.compile(r'\b\w+\b')
+        gaccess = {} # 输入/输出全局变量在代码中的出现位置（避免增加include）
+        for i in range(self.csvinfo.icount+self.csvinfo.ocount):
+            if '@' not in self.csvinfo.var[i+1]:
+                varname = pat_var.search(self.csvinfo.var[i+1]).group()
+                for fidx, fname in enumerate(ct.funcdetail.keys()):
+                    if varname in token_dict[fname]:
+                        gaccess.setdefault(fname, set()).add(varname)
+                        break
+        token_dict = None
+        excludevar = [] # 测试函数中不设置/输出的变量
+        for fname in gaccess.keys():
+            if fname not in svarlist:
+                svarlist[fname] = []
+                appendfuncs.append(os.path.splitext(os.path.basename(fname))[0])
+            for item in gaccess[fname]:
+                svarlist[fname].append((item, item))
+                excludevar.append(item)
+        gaccess = None
+        # 输出测试函数
         for fname in ct.funcdetail.keys():
             for item in ct.funcdetail[fname]:
                 if item[0][0] == self.csvinfo.funcname:
-                    self._writeTestFunc(fname, item, appendfuncs)
+                    self._writeTestFunc(fname, item, appendfuncs, excludevar)
                     testfile = fname
                     break
-        for fname in ct.staticdetail.keys():
-            if len(ct.staticdetail[fname].keys()) > 0:
-                if fname == testfile:
-                    self._writeAccessFunc(fname, svarlist[fname], True)
-                else:
-                    self._writeAccessFunc(fname, svarlist[fname])
+        # 输出static变量的读写函数
+        for fname in svarlist.keys():
+            if fname == testfile:
+                self._writeAccessFunc(fname, svarlist[fname], True)
+            else:
+                self._writeAccessFunc(fname, svarlist[fname])
         fnames = [os.path.abspath(x) for x in ct.funcdetail.keys()]
         self._restore(fnames)
     def _restore(self, filenames, conffile='report.conf', outfile='restore.bat'):
@@ -819,6 +853,7 @@ class WinAMS(object):
             fh.write('#include <stdio.h>\n')
         fh.write('void i{}(int idx)\n'.format(funcname))
         fh.write('{\n')
+        pat_var = re.compile(r'\b\w+\b')
         for i in range(len(self.csvinfo.case)):
             if i == 0:
                 fh.write('    if (idx == {}) \n'.format(i))
@@ -849,6 +884,26 @@ class WinAMS(object):
                         else:
                             for xxi in range(len(vallist)):
                                 fh.write('        {}[{}] = {};\n'.format(varname,xxi,vallist[xxi]))
+                else:
+                    varname = pat_var.search(self.csvinfo.var[j+1]).group()
+                    if (varname,varname) in svarlist:
+                        if '|' in self.csvinfo.case[i][j+1]:
+                            vallist = []
+                            for xx in self.csvinfo.case[i][j+1].split('|'):
+                                xx = xx.strip()
+                                if xx.startswith('*'):
+                                    xxcnt = int(xx[1:])
+                                    xxval = vallist[-1]
+                                    vallist.extend([xxval,]*xxcnt)
+                                else:
+                                    vallist.append(xx)
+                        else:
+                            vallist = [self.csvinfo.case[i][j+1].strip()]
+                        if len(vallist) == 1:
+                            fh.write('        {} = {};\n'.format(self.csvinfo.var[j+1],vallist[0]))
+                        else:
+                            for xxi in range(len(vallist)):
+                                fh.write('        {}[{}] = {};\n'.format(self.csvinfo.var[j+1],xxi,vallist[xxi]))
             fh.write('    }\n')
         fh.write('}\n')
         fh.write('void o{}(int idx, FILE *fp)\n'.format(funcname))
@@ -869,10 +924,18 @@ class WinAMS(object):
                             fh.write('        fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(varname, self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
                         else:
                             fh.write('        fprintf(fp, "{0} = %d\\n", {0});\n'.format(varname))
+                else:
+                    varname = pat_var.search(self.csvinfo.var[self.csvinfo.icount+j+1]).group()
+                    if (varname, varname) in svarlist:
+                        if self.csvinfo.case[i][self.csvinfo.icount + j + 1].strip() != '':
+                            fh.write('        fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(self.csvinfo.var[self.csvinfo.icount+j+1], self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
+                        else:
+                            fh.write('        fprintf(fp, "{0} = %d\\n", {0});\n'.format(self.csvinfo.var[self.csvinfo.icount+j+1]))
             fh.write('    }\n')
         fh.write('}\n')
         fh.close()
-    def _writeTestFunc(self, modfile, funcdetail, appendfuncs):
+    def _writeTestFunc(self, modfile, funcdetail, appendfuncs, excludevar):
+        pat_var = re.compile(r'\b\w+\b')
         fh = open(modfile, 'a', encoding='utf_8_sig')
         fh.write('#include <stdio.h>\n')
         fh.write('#include <stdlib.h>\n')
@@ -908,6 +971,10 @@ class WinAMS(object):
             fh.write('        {\n')
             fh.write('            /* TestCase {} */\n'.format(self.csvinfo.case[i][0]))
             for j in range(self.csvinfo.icount):
+                if '@' not in self.csvinfo.var[j+1]:
+                    varname = pat_var.search(self.csvinfo.var[j+1]).group()
+                    if varname in excludevar:
+                        continue
                 if '|' in self.csvinfo.case[i][j+1]:
                     vallist = []
                     for xx in self.csvinfo.case[i][j+1].split('|'):
@@ -971,6 +1038,9 @@ class WinAMS(object):
                     # dummy函数的参数/返回值/内部static变量的值
                     pass
                 else:
+                    varname = pat_var.search(self.csvinfo.var[j+1]).group()
+                    if varname in excludevar:
+                        continue
                     if self.csvinfo.case[i][self.csvinfo.icount + j + 1].strip() != '':
                         fh.write('            fprintf(fp, "{0} = %d, %d\\n", {1}, {0});\n'.format(self.csvinfo.var[self.csvinfo.icount + j + 1], self.csvinfo.case[i][self.csvinfo.icount + j + 1]))
                     else:
