@@ -34,11 +34,15 @@ class CTokens(object):
         self.tagname = tagname
         self.lexer = lex.lex(object=self,outputdir=scriptPath())
         self.lexer.input(text)
-        self.tokens = list(self.lexer)
-        self.toklen = len(self.tokens)
-        self.funcinfo = []  # set in inject()
-        for idx, tok in enumerate(self.tokens):
-            self._log.log(10, 'idx:{0} {1} col:{2}'.format(idx, str(tok), self.find_tok_column(tok)))
+        try:
+            self.tokens = list(self.lexer)
+            self.toklen = len(self.tokens)
+            self.funcinfo = []  # set in inject()
+            for idx, tok in enumerate(self.tokens):
+                self._log.log(10, 'idx:{0} {1} col:{2}'.format(idx, str(tok), self.find_tok_column(tok)))
+        except Exception as e:
+            self.toklen = 0
+            self._log.log(50, 'lex error:{}'.format(tagname))
     def format(self):
         lines = self._format(0, self.toklen, 0)
         return lines
@@ -360,6 +364,7 @@ class CTokens(object):
         if paramcnt > 0:
             i = self._next(k, 'LPAREN')
             i = self._next(i, ignore_space=False)
+            paramname = ''
             while i < j:
                 if i == h:
                     paramtxt = paramtxt.strip()
@@ -839,8 +844,10 @@ class CTokens(object):
                    'a','b','c','d','e','f','g',
                    'h','i','j','k','l','m','n',
                    'o','p','q','r','s','t',
-                   'u','v','w','x','y','z']
-        return keylist[idx]
+                   'u','v','w','x','y','z',
+                   '0','1','2','3','4',
+                   '5','6','7','8','9']
+        return keylist[idx%len(keylist)]
     def _next(self, startidx, target_type='', ignore_newline=True, ignore_space=True, ignore_comment=True):
         return self._find(1, startidx, target_type, ignore_newline, ignore_space, ignore_comment)
     def _prev(self, startidx, target_type='', ignore_newline=True, ignore_space=True, ignore_comment=True):
