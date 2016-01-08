@@ -12,6 +12,14 @@ from .guess import openTextFile, guessEncode, unescape
 from .multithread import MultiThread
 from .multiprocess import MultiProcess
 
+# Usage:
+#   cscopeout = 'file path of cscope.out'
+#   cp = tagparser.CscopeParser(cscopeout, sourceparser=tagparser.cscopeSourceParserEPS)
+#   cp.outputFuncInfo('info_func.txt', ['Path','StartLine','Scope','Prototype','FunctionID','FunctionName','SubCount','SubName','SourceCount'])
+#                                      # 'FunctionName', 'FunctionID', 'SourceCount' is extracted by sourceparser function
+#   ctags = 'file path of tags'
+#   cp2 = tagparser.CtagsParser(ctags)
+
 LOGNAME = 'CscopeParser'
 LOGNAME2 = 'CtagsParser'
 LOGNAME3 = 'FormatSource'
@@ -47,15 +55,16 @@ class CscopeParser(object):
     PAT_IF = re.compile(r'(?<!#)\bif\b')
     PAT_FOR = re.compile(r'\bfor\b')
     PAT_WHILE = re.compile(r'\bwhile\b')
-    PAT_COMMENT1 = re.compile(r'//.*')
-    PAT_COMMENT2 = re.compile(r'/\*(.|\n)+?\*/')
-    PAT_EMPTYLINE = re.compile(r'^\s*$')
     WORK_COUNT = 3
     # 函数情报类型 extra是从代码中读出的注释情报，其他的数据是从cscope.out中取得
-    FuncInfo = collections.namedtuple('FuncInfo',['name','relpath','startline','stopline','calls','countif','countfor','countwhile','extra'])
-    def __init__(self, cscopeout, encoding=None):
+    FuncInfo = collections.namedtuple('FuncInfo',['name','relpath','startline','stopline','calls','countif','countfor','countwhile','static', 'prototype', 'extra'])
+    def __init__(self, cscopeout, encoding=None, sourceparser=None):
         # 初始化log
         self._log = LogUtil().logger(LOGNAME)
+        if callable(sourceparser):
+            self._cbfunc = sourceparser
+        else:
+            self._cbfunc = None
         # cscope.out文件的生成方法：cscope -Rbcu
         fullpath = os.path.normpath(os.path.abspath(cscopeout))
         self._root, self._cscope = os.path.split(fullpath)
@@ -94,11 +103,13 @@ class CscopeParser(object):
             self._log.log(10, 'Read Cache')
             self._readCache()   # 从cache文件读入分析结果
         else:
-            self._worker = MultiThread(3)
-            self._worker.register(self._readSource)
-            self._worker.start()
+            if self._cbfunc:
+                self._worker = MultiThread(3)
+                self._worker.register(self._readSource)
+                self._worker.start()
             self._parse()       # 分析cscope.out文件，同时把要解析的源代码文件加入到队列中
-            self._worker.join()
+            if self._cbfunc:
+                self._worker.join()
             self._writeCache()  # 将分析结果写入cache文件
             self._log.log(10, 'Write Cache')
     def getFuncInfo(self, *funcnames):
@@ -142,8 +153,6 @@ class CscopeParser(object):
                 fh.write('\tConditionCount')
             elif field == 'Loop':
                 fh.write('\tLoopCount')
-            elif field == 'Lines':
-                fh.write('\tLines')
             elif field == 'Scope':
                 fh.write('\tScope')
             elif field == 'Prototype':
@@ -166,20 +175,18 @@ class CscopeParser(object):
                 elif field == 'SubCount':
                     fh.write('\t{}'.format(len(item.calls)))
                 elif field == 'SubName':
-                    fh.write('\t{}'.format(','.join(self.getFuncCall_asdict(item).keys())))
+                    fh.write('\t{}'.format(','.join(item.calls)))
                 elif field == 'Condition':
                     fh.write('\t{}'.format(item.countif))
                 elif field == 'Loop':
                     fh.write('\t{}'.format(item.countfor + item.countwhile))
-                elif field == 'Lines':
-                    fh.write('\t{}'.format(item.extra.get('lines',0)))
                 elif field == 'Scope':
-                    if item.extra.get('static', False):
+                    if item.static:
                         fh.write('\tLocal')
                     else:
                         fh.write('\tGlobal')
                 elif field == 'Prototype':
-                    fh.write('\t{}'.format(item.extra.get('prototype','')))
+                    fh.write('\t{}'.format(item.prototype))
                 else:
                     fh.write('\t{}'.format(item.extra.get(field,'')))
             fh.write('\n')
@@ -297,14 +304,14 @@ class CscopeParser(object):
             elif ret3:
                 if curfunc:
                     if curfile != lastfile:
-                        if lastfile:
+                        if lastfile and self._cbfunc:
                             self._worker.addJob((startidx, len(self._funcs)))
                         lastfile = curfile
                         startidx = len(self._funcs)
                     self._funcs.append(self.FuncInfo(name=curfunc, relpath=curfile,
                                                      startline=curfunc_startline, stopline=curline,
                                                      calls=callfuncs, countif=count_if, countfor=count_for,
-                                                     countwhile=count_while, extra={'static':static_func,'prototype':funcproto}))
+                                                     countwhile=count_while, static=static_func, prototype=funcproto,extra={}))
                     curfunc = ''
                     curfunc_startline = -1
                     self._log.log(5, 'Match function stop at line [{}]'.format(idx+1))
@@ -312,7 +319,8 @@ class CscopeParser(object):
                 if curfunc and (ret4.group('funcname') not in excludenames):
                     callfuncs.append(ret4.group('funcname'))
                     self._log.log(5, 'Match funccall[{}] at line [{}]'.format(ret4.group('funcname'), idx+1))
-        self._worker.addJob((startidx, len(self._funcs)))
+        if self._cbfunc:
+            self._worker.addJob((startidx, len(self._funcs)))
     def _readSource(self, param):
         startidx, stopidx = param[0:2]
         curfile = self._funcs[startidx].relpath
@@ -326,45 +334,10 @@ class CscopeParser(object):
             item = self._funcs[idx]
             # 从上一个函数的结束到当前函数的开始范围内，查找机能名和函数ID
             curline = int(item.startline) - 1
-            self._log.log(5, 'Check function[{}] in the range {}-{}'.format(item.name, startline+1, curline+1))
-            item.extra.update(self._extractCmtInfo(lines, startline, curline))
-            startline = int(item.stopline) - 1
-            tempcode = ''.join(lines[int(item.startline)-1:int(item.stopline)])
-            tempcode = self.PAT_COMMENT1.sub('',tempcode)
-            tempcode = self.PAT_COMMENT2.sub('',tempcode)
-            linecount = 0
-            for templine in tempcode.splitlines():
-                if not self.PAT_EMPTYLINE.search(templine):
-                    linecount += 1
-            item.extra['lines']=linecount
-    def _extractCmtInfo(self, lines, startline, endline):
-        PAT_JPNAME = re.compile(r'^\s+機能名\s*(:|：)\s*(?P<jpname>\S.*?)\s*$')
-        PAT_FUNCNO = re.compile(r'^\s+関数番号\s*(:|：)\s*(?P<funcno>\S+)')
-        curline = endline
-        info = {}
-        flag1 = False
-        flag2 = False
-        while curline > startline:
-            ret1 = PAT_JPNAME.search(lines[curline])
-            ret2 = PAT_FUNCNO.search(lines[curline])
-            if ret1:
-                if flag1:
-                    break
-                else:
-                    info['FunctionName'] = ret1.group('jpname')
-                    flag1 = True
-                    self._log.log(5, 'Found JPName at line[{}]'.format(curline+1))
-            if ret2:
-                if flag2:
-                    break
-                else:
-                    info['FunctionID'] = ret2.group('funcno')
-                    flag2 = True
-                    self._log.log(5, 'Found FuncNo at line[{}]'.format(curline+1))
-            if flag1 and flag2:
-                break
-            curline -= 1
-        return info
+            stopline = int(item.stopline) - 1
+            self._log.log(5, 'Check function[{}] in the range {}-{}-{}'.format(item.name, startline+1, curline+1, stopline+1))
+            item.extra.update(self._cbfunc(fullpath, lines, item.name, startline, curline, stopline))
+            startline = stopline
     def _readCache(self):
         fh = open(os.path.join(self._root, 'cscope.cache'), 'rb')
         self._funcs = [self.FuncInfo(**x) for x in pickle.load(fh)]
@@ -375,8 +348,13 @@ class CscopeParser(object):
         fh.close()
 
 class CtagsParser(object):
-    TAGINFO = collections.namedtuple('TAGINFO', ['token', 'path', 'line', 'cate', 'extra', 'scope'])
-    PAT_RECORD = re.compile(r'^(?P<token>\S+?)\t(?P<path>[^\t]+)\t(?P<line>(?:\d+|.+?));"\t(?P<cate>.)(\t(?P<extra>.+))?$')
+    TagInfo = collections.namedtuple('TagInfo', ['token', 'path', 'line', 'cate', 'extra', 'scope','info'])
+    #PAT_RECORD = re.compile(r'^(?P<token>\S+?)\t(?P<path>[^\t]+)\t(?P<line>(?:\d+|.+?));"\t(?P<cate>.)(\t(?P<extra>.+))?$')
+    PAT_RECORD = re.compile(r'^(?P<token>\S+?)\t(?P<path>[^\t]+)\t(?P<line>\d+);"\t(?P<cate>.)(\t(?P<extra>.+))?$')
+    PAT_TYPEDEF = re.compile(r'\btypedef\b')
+    PAT_COMMENT1 = re.compile(r'//.*')
+    PAT_COMMENT2 = re.compile(r'/\*(.|\n)+?\*/')
+    PAT_EMPTYLINE = re.compile(r'^\s*$')
     def __init__(self, tagfile, encoding=None):
         # 初始化log
         self._log = LogUtil().logger(LOGNAME2)
@@ -388,6 +366,10 @@ class CtagsParser(object):
         if encoding and (encoding not in self._testcodes):
             self._testcodes.insert(0, encoding)
         self._log.log(20, 'New object[{},{}]'.format(self._root, self._tag))
+        if hasattr(sys,'frozen'):
+            selffile = sys.executable
+        else:
+            selffile = __file__
         if not os.path.isfile(fullpath):
             # 自动生成tags
             curdir = os.path.abspath('.')
@@ -404,21 +386,34 @@ class CtagsParser(object):
             os.chdir(curdir)
             if mp_ret:
                 self._log.log(50, "Error in generating tag file")
-                self._funcs = []
+                self._info = []
                 return
-        self._info = []
-        self._parse()
+        if cacheCheck(os.path.join(self._root,'tags.cache'), selffile, fullpath):
+            self._log.log(10, 'Read Cache')
+            self._readCache()   # 从cache文件读入分析结果
+        else:
+            self._worker = MultiThread(3)
+            self._worker.register(self._readSource)
+            self._worker.start()
+            self._info = []
+            self._parse()       # 分析tags文件，同时把要解析的源代码文件加入到队列中
+            self._worker.join()
+            self._writeCache()  # 将分析结果写入cache文件
+            self._log.log(10, 'Write Cache')
     def _parse(self):
         fullpath = os.path.join(self._root, self._tag)
         encoding = guessEncode(fullpath, *self._testcodes)[0]
         fh = open(fullpath ,'r', encoding=encoding, errors='ignore')
+        lastfile = ''
+        startidx = 0
         for line in fh.readlines():
             line = line.rstrip()
             patret = self.PAT_RECORD.match(line)
             if patret:
                 token = patret.group('token')
                 path = patret.group('path')
-                line = patret.group('line')
+                lineno = patret.group('line')
+                #lineno = unescape(lineno, encoding)
                 cate = patret.group('cate')
                 extra = patret.group('extra')
                 scope = True
@@ -429,15 +424,85 @@ class CtagsParser(object):
                         parts.pop()
                 else:
                     parts = []
-                self._info.append(self.TAGINFO(token=token,
+                if path != lastfile:
+                    if lastfile != '':
+                        self._worker.addJob((startidx, len(self._info)))
+                    startidx = len(self._info)
+                    lastfile = path
+                self._info.append(self.TagInfo(token=token,
                                                path=path,
-                                               line=unescape(line, encoding),
+                                               line=lineno,
                                                cate=cate,
                                                extra=tuple(parts),
-                                               scope=scope))
+                                               scope=scope,
+                                               info={}))
                 self._log.log(15, self._info[-1])
             else:
                 self._log.log(5, 'Miss Match:{}'.format(line))
+        if lastfile != '':
+            self._worker.addJob((startidx, len(self._info)))
+        fh.close()
+    def _readSource(self, param):
+        startidx, stopidx = param[0:2]
+        curfile = self._info[startidx].path
+        fullpath = os.path.join(self._root, curfile)
+        fh = openTextFile(self._testcodes, fullpath, 'r')
+        lines = fh.readlines()
+        fh.close()
+        self._log.log(5, 'Open source file[{}]'.format(curfile))
+        for idx in range(startidx, stopidx):
+            item = self._info[idx]
+            lineidx = int(item.line) - 1
+            cate = item.cate
+            if cate == 't':
+                lineidx1 = lineidx
+                lineidx2 = lineidx
+                linecol1 = 0
+                linecol2 = 0
+                # search end of typedef
+                patret = re.search(r'\b'+item.token+r'\b', lines[lineidx2])
+                linecol2 = patret.end()
+                while lines[lineidx2].find(';', linecol2) < 0:
+                    linecol2 = 0
+                    lineidx2 += 1
+                else:
+                    linecol2 = lines[lineidx2].find(';', linecol2)
+                # search start of typedef
+                patret = self.PAT_TYPEDEF.search(lines[lineidx1])
+                while not patret and lineidx1 > 0:
+                    lineidx1 -= 1
+                    patret = self.PAT_TYPEDEF.search(lines[lineidx1])
+                if patret:
+                    linecol1 = patret.start()
+                    if lineidx1 < lineidx2:
+                        code = lines[lineidx1][linecol1:]
+                        lineidx = lineidx1 + 1
+                        while lineidx < lineidx2:
+                            code += lines[lineidx]
+                            lineidx += 1
+                        code += lines[lineidx2][:linecol2+1]
+                    else:
+                        code = lines[lineidx1][linecol1:linecol2+1]
+                    code = self.PAT_COMMENT1.sub('',code)
+                    code = self.PAT_COMMENT2.sub('',code)
+                    newcode = []
+                    for templine in code.splitlines():
+                        if not self.PAT_EMPTYLINE.search(templine):
+                            newcode.append(templine.rstrip())
+                    code = '\n'.join(newcode)
+                    # search comment
+                    cmt = self._searchComment(lines, lineidx1, linecol1, lineidx2, linecol2)
+                else:
+                    pass
+    def _searchComment(self, lines, startline, startcol, endline, endcol):
+        return ''
+    def _readCache(self):
+        fh = open(os.path.join(self._root, 'tags.cache'), 'rb')
+        self._info = [self.TagInfo(**x) for x in pickle.load(fh)]
+        fh.close()
+    def _writeCache(self):
+        fh = open(os.path.join(self._root, 'tags.cache'), 'wb')
+        pickle.dump([x._asdict() for x in self._info], fh)
         fh.close()
 
 class FormatSource(object):
@@ -591,23 +656,46 @@ class FormatSource(object):
         self._log.log(10, 'Output:[{}]'.format(outtxt))
         return outtxt
 
-if __name__ == '__main__':
-    cp = CscopeParser('cscope.out')
-    # 例子：查找指定函数所调用的所有函数
-    info = cp.getFuncInfo('Input_FSP1_IF', 'API_Renewal_InfoFail')
-    fh = open('out.txt','w',encoding='utf-8')
-    for item in info:
-        # 输出指定的函数
-        fh.write(item.name+'\t'+item.extra.get('funcno','')+'\t'+item.extra.get('jpname','')+'\n')
-        info2 = cp.getFuncInfo(*item.calls)
-        for func in CscopeParser.getFuncCall_asdict(item).keys():
-            fh.write(func)
-            for item2 in info2:
-                if item2.name == func:
-                    fh.write('\t'+item2.extra.get('jpname',''))
-                    break
-            fh.write('\n')
-        fh.write('\n')
-    fh.close()
-    # 例子：输出函数列表
-    cp.outputFuncInfo('out.txt')
+def cscopeSourceParserEPS(filename, lines, funcname, lastendline, startline, endline):
+    logger = LogUtil().logger(LOGNAME)
+    PAT_JPNAME = re.compile(r'^\s+機能名\s*(:|：)\s*(?P<jpname>\S.*?)\s*$')
+    PAT_FUNCNO = re.compile(r'^\s+関数番号\s*(:|：)\s*(?P<funcno>\S+)')
+    PAT_COMMENT1 = re.compile(r'//.*')
+    PAT_COMMENT2 = re.compile(r'/\*(.|\n)+?\*/')
+    PAT_EMPTYLINE = re.compile(r'^\s*$')
+    # extract function name in words, function id
+    curline = startline
+    info = {}
+    flag1 = False
+    flag2 = False
+    while curline > lastendline:
+        ret1 = PAT_JPNAME.search(lines[curline])
+        ret2 = PAT_FUNCNO.search(lines[curline])
+        if ret1:
+            if flag1:
+                break
+            else:
+                info['FunctionName'] = ret1.group('jpname')
+                flag1 = True
+                logger.log(5, 'Found JPName at line[{}]'.format(curline+1))
+        if ret2:
+            if flag2:
+                break
+            else:
+                info['FunctionID'] = ret2.group('funcno')
+                flag2 = True
+                logger.log(5, 'Found FuncNo at line[{}]'.format(curline+1))
+        if flag1 and flag2:
+            break
+        curline -= 1
+    # extract source count
+    tempcode = ''.join(lines[startline:endline+1])
+    tempcode = PAT_COMMENT1.sub('',tempcode)
+    tempcode = PAT_COMMENT2.sub('',tempcode)
+    linecount = 0
+    for templine in tempcode.splitlines():
+        if not PAT_EMPTYLINE.search(templine):
+            linecount += 1
+    info['SourceCount']=linecount
+    return info
+
