@@ -10,7 +10,7 @@ if sys.platform == 'win32':
 options = {
     'build_exe': {
         'includes': 'atexit',
-        'include_files': ['bin','qm']
+        'include_files': ['collectscript/bin','qm','collectscript/logging.conf']
     }
 }
 

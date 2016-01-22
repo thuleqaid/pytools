@@ -95,72 +95,74 @@ class MainDialog(QtGui.QDialog):
     def onBtnExtractFunc(self):
         srcdir = self._ui.editNewSource.text()
         if srcdir:
-            if os.path.isfile(os.path.join(srcdir,'cscope.out')):
-                self._ui.listWidget_Source.addItem("Start extract function info...")
-                self.setDisabled(True)
-                self.act_cscope = tagparser.CscopeParser(os.path.join(srcdir,'cscope.out'))
-                fields = []
-                if self._ui.checkFilePath.checkState() == QtCore.Qt.Checked:
-                    fields.append('Path')
-                if self._ui.checkStartline.checkState() == QtCore.Qt.Checked:
-                    fields.append('StartLine')
-                if self._ui.checkStopline.checkState() == QtCore.Qt.Checked:
-                    fields.append('StopLine')
-                if self._ui.checkSubFuncCount.checkState() == QtCore.Qt.Checked:
-                    fields.append('SubCount')
-                if self._ui.checkSubFuncName.checkState() == QtCore.Qt.Checked:
-                    fields.append('SubName')
-                if self._ui.checkCondition.checkState() == QtCore.Qt.Checked:
-                    fields.append('Condition')
-                if self._ui.checkLoop.checkState() == QtCore.Qt.Checked:
-                    fields.append('Loop')
-                if self._ui.checkLines.checkState() == QtCore.Qt.Checked:
-                    fields.append('Lines')
-                if self._ui.checkFuncID.checkState() == QtCore.Qt.Checked:
-                    fields.append('FunctionID')
-                if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
-                    fields.append('FunctionName')
-                self.act_cscope.outputFuncInfo(os.path.join(srcdir,'funcinfo.txt'),fields)
-                self.act_cscope = None
-                self.setDisabled(False)
-                self._ui.listWidget_Source.addItem("Finished.")
-                subprocess.Popen(['explorer.exe',os.path.normpath(srcdir)],shell=True)
-            else:
-                self._ui.listWidget_Source.addItem("Tag files not found.")
+            self._ui.listWidget_Source.addItem("Start extract function info...")
+            self.setDisabled(True)
+            self.act_cscope = tagparser.CscopeParser(os.path.join(srcdir,'cscope.out'),sourceparser=tagparser.cscopeSourceParserEPS)
+            fields = []
+            if self._ui.checkFilePath.checkState() == QtCore.Qt.Checked:
+                fields.append('Path')
+            if self._ui.checkScope.checkState() == QtCore.Qt.Checked:
+                fields.append('Scope')
+            if self._ui.checkStartline.checkState() == QtCore.Qt.Checked:
+                fields.append('StartLine')
+            if self._ui.checkStopline.checkState() == QtCore.Qt.Checked:
+                fields.append('StopLine')
+            if self._ui.checkSubFuncCount.checkState() == QtCore.Qt.Checked:
+                fields.append('SubCount')
+            if self._ui.checkSubFuncName.checkState() == QtCore.Qt.Checked:
+                fields.append('SubName')
+            if self._ui.checkCondition.checkState() == QtCore.Qt.Checked:
+                fields.append('Condition')
+            if self._ui.checkLoop.checkState() == QtCore.Qt.Checked:
+                fields.append('Loop')
+            if self._ui.checkPrototype.checkState() == QtCore.Qt.Checked:
+                fields.append('Prototype')
+            if self._ui.checkLines.checkState() == QtCore.Qt.Checked:
+                fields.append('SourceCount')
+            if self._ui.checkFuncID.checkState() == QtCore.Qt.Checked:
+                fields.append('FunctionID')
+            if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
+                fields.append('FunctionName')
+            self.act_cscope.outputFuncInfo(os.path.join(srcdir,'funcinfo.txt'),fields)
+            self.act_cscope = None
+            self.setDisabled(False)
+            self._ui.listWidget_Source.addItem("Finished.")
+            subprocess.Popen(['explorer.exe',os.path.normpath(srcdir)],shell=True)
     def onBtnExtractFuncDiff(self):
         newdir = self._ui.editNewSource.text()
         olddir = self._ui.editBaseSource.text()
         if newdir and olddir and os.path.isdir(newdir) and os.path.isdir(olddir):
-            if os.path.isfile(os.path.join(newdir,'cscope.out')):
-                self._ui.listWidget_Source.addItem("Start extract function info...")
-                sd = source_diff.SourceDiff(olddir, newdir)
-                fields = []
-                if self._ui.checkFilePath.checkState() == QtCore.Qt.Checked:
-                    fields.append('Path')
-                if self._ui.checkStartline.checkState() == QtCore.Qt.Checked:
-                    fields.append('StartLine')
-                if self._ui.checkStopline.checkState() == QtCore.Qt.Checked:
-                    fields.append('StopLine')
-                if self._ui.checkSubFuncCount.checkState() == QtCore.Qt.Checked:
-                    fields.append('SubCount')
-                if self._ui.checkSubFuncName.checkState() == QtCore.Qt.Checked:
-                    fields.append('SubName')
-                if self._ui.checkCondition.checkState() == QtCore.Qt.Checked:
-                    fields.append('Condition')
-                if self._ui.checkLoop.checkState() == QtCore.Qt.Checked:
-                    fields.append('Loop')
-                if self._ui.checkLines.checkState() == QtCore.Qt.Checked:
-                    fields.append('Lines')
-                if self._ui.checkFuncID.checkState() == QtCore.Qt.Checked:
-                    fields.append('FunctionID')
-                if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
-                    fields.append('FunctionName')
-                sd._tag.outputFuncInfo(os.path.join(newdir,'funcinfo.txt'),fields,[y for x in sd.getDiffFuncs().items() for y in x[1]])
-                sd.report(os.path.join(newdir,'diffinfo.txt'))
-                self._ui.listWidget_Source.addItem("Finished.")
-                subprocess.Popen(['explorer.exe',os.path.normpath(newdir)],shell=True)
-            else:
-                self._ui.listWidget_Source.addItem("Tag files not found.")
+            self._ui.listWidget_Source.addItem("Start extract function info...")
+            sd = source_diff.SourceDiff(olddir, newdir)
+            fields = []
+            if self._ui.checkFilePath.checkState() == QtCore.Qt.Checked:
+                fields.append('Path')
+            if self._ui.checkScope.checkState() == QtCore.Qt.Checked:
+                fields.append('Scope')
+            if self._ui.checkStartline.checkState() == QtCore.Qt.Checked:
+                fields.append('StartLine')
+            if self._ui.checkStopline.checkState() == QtCore.Qt.Checked:
+                fields.append('StopLine')
+            if self._ui.checkSubFuncCount.checkState() == QtCore.Qt.Checked:
+                fields.append('SubCount')
+            if self._ui.checkSubFuncName.checkState() == QtCore.Qt.Checked:
+                fields.append('SubName')
+            if self._ui.checkCondition.checkState() == QtCore.Qt.Checked:
+                fields.append('Condition')
+            if self._ui.checkLoop.checkState() == QtCore.Qt.Checked:
+                fields.append('Loop')
+            if self._ui.checkPrototype.checkState() == QtCore.Qt.Checked:
+                fields.append('Prototype')
+            if self._ui.checkLines.checkState() == QtCore.Qt.Checked:
+                fields.append('SourceCount')
+            if self._ui.checkFuncID.checkState() == QtCore.Qt.Checked:
+                fields.append('FunctionID')
+            if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
+                fields.append('FunctionName')
+            sd._tag.outputFuncInfo(os.path.join(newdir,'funcinfo.txt'),fields,[y for x in sd.getDiffFuncs().items() for y in x[1]])
+            sd.report(os.path.join(newdir,'diffinfo.txt'))
+            self._ui.listWidget_Source.addItem("Finished.")
+            subprocess.Popen(['explorer.exe',os.path.normpath(newdir)],shell=True)
     # private functions
     def _actionCopy(self, param):
         srcdir = param[0]
@@ -205,10 +207,9 @@ class MainDialog(QtGui.QDialog):
                 self._worker.addJob((srcdir, dstdir, filename),'Copy')
     def _actionCscope(self, param):
         srcdir = param[0]
-        params = []
-        params.append(os.path.join(self._selfpath,'bin','cscope.exe'))
-        params.append('-Rbcu')
-        self._runCmd(params)
+        fullpath = os.path.join(srcdir,'cscope.out')
+        os.unlink(fullpath)
+        gen_cscope = tagparser.CscopeParser(fullpath,sourceparser=tagparser.cscopeSourceParserEPS)
     def _actionCtags(self, param):
         srcdir = param[0]
         params = []

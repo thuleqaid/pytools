@@ -259,6 +259,9 @@ class CscopeParser(object):
                         else:
                             curfunc_startline = subret1.group('lineno')
                             testpart = subret1.group('extra').strip()
+                        if '}' in testpart:
+                            funcproto = testpart[testpart.find('}')+1:] + ' ' + funcproto
+                            break
                         if testpart != '':
                             funcproto = testpart + ' ' + funcproto
                         if subret1 and funcproto != '':
@@ -299,8 +302,14 @@ class CscopeParser(object):
                                         break
                             if sum(bpair) == 0:
                                 break
+                            if len(funcproto) > 400:
+                                # 函数宣言分多行时，cscope解析结果会漏掉结束的“)”，导致无限循环
+                                break
                         subidx += 1
-                    funcproto = pat_space.sub(' ', funcproto)
+                    if sum(bpair) == 0:
+                        funcproto = pat_space.sub(' ', funcproto)
+                    else:
+                        funcproto = ''
             elif ret3:
                 if curfunc:
                     if curfile != lastfile:
