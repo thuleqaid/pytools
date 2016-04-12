@@ -123,6 +123,8 @@ class MainDialog(QtGui.QDialog):
                 fields.append('FunctionID')
             if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
                 fields.append('FunctionName')
+            if self._ui.checkInline.checkState() == QtCore.Qt.Checked:
+                fields.append('Inline')
             self.act_cscope.outputFuncInfo(os.path.join(srcdir,'funcinfo.txt'),fields)
             self.act_cscope = None
             self.setDisabled(False)
@@ -159,6 +161,8 @@ class MainDialog(QtGui.QDialog):
                 fields.append('FunctionID')
             if self._ui.checkFuncName.checkState() == QtCore.Qt.Checked:
                 fields.append('FunctionName')
+            if self._ui.checkInline.checkState() == QtCore.Qt.Checked:
+                fields.append('Inline')
             sd._tag.outputFuncInfo(os.path.join(newdir,'funcinfo.txt'),fields,[y for x in sd.getDiffFuncs().items() for y in x[1]])
             sd.report(os.path.join(newdir,'diffinfo.txt'))
             self._ui.listWidget_Source.addItem("Finished.")
@@ -238,6 +242,7 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     #Change UI Language based on system
     locale = QtCore.QLocale.system()
+    #print(locale.name())
     trans = QtCore.QTranslator()
     trans.load(os.path.join(logutil.scriptPath(_selffile),'qm',"toolbox_{}.qm".format(locale.name())))
     app.installTranslator(trans)

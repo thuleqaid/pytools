@@ -706,5 +706,14 @@ def cscopeSourceParserEPS(filename, lines, funcname, lastendline, startline, end
         if not PAT_EMPTYLINE.search(templine):
             linecount += 1
     info['SourceCount']=linecount
+    # inline check
+    tempcode = ''.join(lines[lastendline:startline])
+    tempcode = PAT_COMMENT1.sub('',tempcode)
+    tempcode = PAT_COMMENT2.sub('',tempcode)
+    PAT_INLINE = re.compile(r'\binline\b|\b_inline_\b|\b__inline__\b')
+    if PAT_INLINE.search(tempcode):
+        info['Inline'] = 1
+    else:
+        info['Inline'] = 0
     return info
 
