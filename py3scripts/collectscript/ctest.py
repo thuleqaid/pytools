@@ -936,6 +936,7 @@ class WinAMS(object):
         fh.close()
     def _writeTestFunc(self, modfile, funcdetail, appendfuncs, excludevar):
         pat_var = re.compile(r'\b\w+\b')
+        pat_stripconst = re.compile(r'(^const\s+|\s+const\s+)')
         fh = open(modfile, 'a', encoding='utf_8_sig')
         fh.write('#include <stdio.h>\n')
         fh.write('#include <stdlib.h>\n')
@@ -954,7 +955,7 @@ class WinAMS(object):
         else:
             paramptn = re.compile(r'#@#')
         for i in range(len(funcdetail)-1):
-            fh.write('    '+funcdetail[i+1][1]+';\n')
+            fh.write('    '+pat_stripconst.sub(' ',funcdetail[i+1][1])+';\n')
         fh.write('    FILE *fp;\n')
         resultfile = os.path.abspath(self.csvinfo.funcno+'.txt').replace('\\','\\\\')
         fh.write('    fopen_s(&fp, "{}", "wt");\n'.format(resultfile))
