@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from PyQt4 import QtGui,QtCore
+import sys
 import os
 import configparser
 import re
 import filefilter_ui
 from collectscript import filefilter, logutil
 
+if hasattr(sys,'frozen'):
+    _selffile = sys.executable
+else:
+    _selffile = __file__
 class FileFilterQt(QtGui.QWidget):
     CONFIG_FILE = 'filefilter.ini'
     def __init__(self, parent=None):
@@ -15,7 +20,7 @@ class FileFilterQt(QtGui.QWidget):
         self._ui = filefilter_ui.Ui_FileFilterWidget()
         self._ui.setupUi(self)
         self._core = filefilter.FileFilter()
-        self._conffile = os.path.join(logutil.scriptPath(),self.CONFIG_FILE)
+        self._conffile = os.path.join(logutil.scriptPath(_selffile),self.CONFIG_FILE)
         self._loadConfig()
     def onBtnSrcDir(self):
         self._ui.editSrcDir.setText(QtGui.QFileDialog.getExistingDirectory(self))

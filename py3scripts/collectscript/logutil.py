@@ -37,7 +37,7 @@ def scriptPath(filepath=_selffile):
 def singleton(cls, *args, **kw):
     instance={}
     inslocker=Lock()
-    def _singleton():
+    def _singleton(*args, **kw):
         if cls in instance:
             return instance[cls]
         inslocker.acquire()
@@ -53,11 +53,9 @@ def singleton(cls, *args, **kw):
 
 @singleton
 class LogUtil(object):
-    LOGDIR=scriptPath().replace('\\','/')
-    CONFFILE=os.path.join(scriptPath(),'logging.conf')
-    def __init__(self):
-        if os.path.exists(self.CONFFILE) and os.path.isfile(self.CONFFILE):
-            logging.config.fileConfig(self.CONFFILE,{'logdir':self.LOGDIR})
+    def __init__(self, filename=os.path.join(scriptPath(),'logging.conf')):
+        if os.path.exists(filename) and os.path.isfile(filename):
+            logging.config.fileConfig(filename,{'logdir':os.path.abspath(os.path.dirname(filename)).replace('\\', '/')})
         else:
             pass
     def logger(self,logname):
@@ -178,12 +176,12 @@ qualname=%s
     fh.write(str_format)
     fh.close()
 
-def logConf():
+def logConf(filename=os.path.join(scriptPath(),'logging.conf')):
     parser = ArgumentParser()
     parser.add_argument('-l','--log',dest='flag_log',action='store_true',default=False,help='generate log config')
     options=parser.parse_args()
     if options.flag_log:
-        newConf()
+        newConf(filename)
 
 if __name__=='__main__':
     import sys

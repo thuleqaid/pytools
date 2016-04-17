@@ -6,11 +6,14 @@ import shutil
 import subprocess
 import toolbox_ui
 from collectscript import logutil, encodechanger, jp2fullwidth, multithread, guess, tagparser, source_diff
+import analyze
 
 if hasattr(sys,'frozen'):
     _selffile = sys.executable
 else:
     _selffile = __file__
+LOGCONFIG = os.path.join(logutil.scriptPath(_selffile), 'logging.conf')
+
 class MainDialog(QtGui.QDialog):
     def setupUi(self):
         self._selfpath = os.path.abspath(logutil.scriptPath(_selffile))
@@ -167,6 +170,65 @@ class MainDialog(QtGui.QDialog):
             sd.report(os.path.join(newdir,'diffinfo.txt'))
             self._ui.listWidget_Source.addItem("Finished.")
             subprocess.Popen(['explorer.exe',os.path.normpath(newdir)],shell=True)
+    # Tab_Inline
+    def onBtnInlineSource(self):
+        self._ui.editInlineSource.setText(QtGui.QFileDialog.getExistingDirectory(self))
+    def onBtnInlineFunction(self):
+        self._ui.editInlineFunction.setText(QtGui.QFileDialog.getOpenFileName(self))
+    def onBtnInlineInline(self):
+        self._ui.editInlineInline.setText(QtGui.QFileDialog.getSaveFileName(self))
+    def onBtnInlineMetric(self):
+        self._ui.editInlineMetric.setText(QtGui.QFileDialog.getSaveFileName(self))
+    def onBtnInlineTree(self):
+        self._ui.editInlineTree.setText(QtGui.QFileDialog.getSaveFileName(self))
+    def onBtnInlineAdjust(self):
+        self._ui.editInlineAdjust.setText(QtGui.QFileDialog.getSaveFileName(self))
+    def onBtnInlineGenerateInline(self):
+        srcroot = self._ui.editInlineSource.text()
+        targets = self._ui.editInlineFunction.text()
+        inlines = self._ui.editInlineInline.text()
+        if srcroot and targets and inlines:
+            ei = analyze.ExtractInline(srcroot)
+            ei.setTargetFile(targets)
+            ei.outputInline(inlines)
+        else:
+            QtGui.QMessageBox.warning(self, "Warning", "Missing Source Dir/Function List/Tree File")
+    def onBtnInlineGenerateMetric(self):
+        srcroot = self._ui.editInlineSource.text()
+        targets = self._ui.editInlineFunction.text()
+        outfile = self._ui.editInlineMetric.text()
+        if srcroot and targets and outfile:
+            ei = analyze.ExtractInline(srcroot)
+            ei.setTargetFile(targets)
+            inlines = self._ui.editInlineInline.text()
+            if inlines:
+                ei.setInlineFile(inlines)
+            ei.outputMetric(outfile)
+        else:
+            QtGui.QMessageBox.warning(self, "Warning", "Missing Source Dir/Function List/Tree File")
+    def onBtnInlineGenerateTree(self):
+        srcroot = self._ui.editInlineSource.text()
+        targets = self._ui.editInlineFunction.text()
+        outfile = self._ui.editInlineTree.text()
+        if srcroot and targets and outfile:
+            ei = analyze.ExtractInline(srcroot)
+            ei.setTargetFile(targets)
+            inlines = self._ui.editInlineInline.text()
+            if inlines:
+                ei.setInlineFile(inlines)
+            ei.outputTree(outfile)
+        else:
+            QtGui.QMessageBox.warning(self, "Warning", "Missing Source Dir/Function List/Tree File")
+    def onBtnInlineGenerateAdjust(self):
+        treefile = self._ui.editInlineTree.text()
+        metricfile = self._ui.editInlineMetric.text()
+        outfile = self._ui.editInlineAdjust.text()
+        if treefile and metricfile and outfile:
+            sm = analyze.SumMetrics(treefile)
+            sm.setMetrics(metricfile)
+            sm.outputMetrics(outfile)
+        else:
+            QtGui.QMessageBox.warning(self, "Warning", "Missing Metric File/Tree File/Output File")
     # private functions
     def _actionCopy(self, param):
         srcdir = param[0]
@@ -238,7 +300,8 @@ class MainDialog(QtGui.QDialog):
             os.makedirs(head, exist_ok=True)
 
 if __name__ == '__main__':
-    logutil.logConf()
+    logutil.logConf(LOGCONFIG)
+    logutil.LogUtil(LOGCONFIG)
     app = QtGui.QApplication(sys.argv)
     #Change UI Language based on system
     locale = QtCore.QLocale.system()
