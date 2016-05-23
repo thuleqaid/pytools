@@ -6,16 +6,23 @@ from .logutil import LogUtil, registerLogger
 LOGNAME = 'GuessEncode'
 registerLogger(LOGNAME)
 
+DEFAULT_ENCODE = ('cp932', 'cp936')
+
 def unescape(txt, encoding):
     bstr = bytes(txt, encoding)
     bstr = bstr.replace(b'\\\\',b'\\')
     bstr = bstr.replace(b'\\/',b'/')
     return bstr.decode(encoding)
 
-def openTextFile(encodelist, *args, **kwargs):
+def setDefaultEncode(*encodelist):
+    DEFAULT_ENCODE = tuple(encodelist)
+def getDefaultEncode():
+    return DEFAULT_ENCODE
+
+def openTextFile(*args, **kwargs):
     if len(args) > 0:
         fname = args[0]
-        encode = guessEncode(fname, *encodelist)[0]
+        encode = guessEncode(fname, *DEFAULT_ENCODE)[0]
         if encode:
             fh = open(*args, encoding=encode, errors='ignore', **kwargs)
         else:
@@ -23,6 +30,32 @@ def openTextFile(encodelist, *args, **kwargs):
         return fh
     else:
         return None
+
+def readTextFile(striptype, *args, **kwargs):
+    fh = openTextFile(*args, **kwargs)
+    if striptype == 'lstrip':
+        stripfunc = str.lstrip
+    elif striptype == 'rstrip':
+        stripfunc = str.rstrip
+    elif striptype == 'strip':
+        stripfunc = str.strip
+    else:
+        stripfunc = None
+    outlist = []
+    for idx,line in enumerate(fh.readlines()):
+        if stripfunc:
+            line = stripfunc(line)
+        if line.startswith('#'):
+            if idx == 0:
+                # header line
+                outlist.append(line)
+            else:
+                # comment line
+                pass
+        else:
+            outlist.append(line)
+    fh.close()
+    return outlist
 
 def guessEncode(fname,*encodelist):
     '''

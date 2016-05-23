@@ -8,7 +8,7 @@ import pickle
 import threading
 import queue
 from .logutil import LogUtil, registerLogger, scriptPath
-from .guess import openTextFile, guessEncode, unescape
+from .guess import openTextFile, guessEncode, unescape, setDefaultEncode
 from .multithread import MultiThread
 from .multiprocess import MultiProcess
 
@@ -72,6 +72,7 @@ class CscopeParser(object):
         self._testcodes = ['cp932','cp936']
         if encoding and (encoding not in self._testcodes):
             self._testcodes.insert(0, encoding)
+            setDefaultEncode(self._testcodes)
         self._log.log(20, 'New object[{},{}]'.format(self._root, self._cscope))
         if hasattr(sys,'frozen'):
             selffile = sys.executable
@@ -134,63 +135,65 @@ class CscopeParser(object):
         return outlist
 
     def outputFuncInfo(self, outfile, fields, funclist=None):
-        # 输出函数列表
-        self._log.log(10, "[{}][{}]".format(outfile, ','.join(fields)))
-        fh=open(outfile,'w',encoding='utf-8')
-        fh.write("#Function")
+        outdata = [['#Function']]
         for field in fields:
             if field == 'Path':
-                fh.write('\tPath')
+                outdata[0].append('Path')
             elif field == 'StartLine':
-                fh.write('\tStartLine')
+                outdata[0].append('StartLine')
             elif field == 'StopLine':
-                fh.write('\tStopLine')
+                outdata[0].append('StopLine')
             elif field == 'SubCount':
-                fh.write('\tSubFunctionCallCount')
+                outdata[0].append('SubFunctionCallCount')
             elif field == 'SubName':
-                fh.write('\tSubFunctionName')
+                outdata[0].append('SubFunctionName')
             elif field == 'Condition':
-                fh.write('\tConditionCount')
+                outdata[0].append('ConditionCount')
             elif field == 'Loop':
-                fh.write('\tLoopCount')
+                outdata[0].append('LoopCount')
             elif field == 'Scope':
-                fh.write('\tScope')
+                outdata[0].append('Scope')
             elif field == 'Prototype':
-                fh.write('\tPrototype')
+                outdata[0].append('Prototype')
             else:
-                fh.write('\t'+field)
-        fh.write('\n')
+                outdata[0].append(field)
         if not funclist:
             funclist = self._funcs
         for item in funclist:
-            fh.write(item.name)
+            outdata.append([item.name])
             self._log.log(10, item.name)
             for field in fields:
                 if field == 'Path':
-                    fh.write('\t{}'.format(item.relpath))
+                    outdata[-1].append(item.relpath)
                 elif field == 'StartLine':
-                    fh.write('\t{}'.format(item.startline))
+                    outdata[-1].append(item.startline)
                 elif field == 'StopLine':
-                    fh.write('\t{}'.format(item.stopline))
+                    outdata[-1].append(item.stopline)
                 elif field == 'SubCount':
-                    fh.write('\t{}'.format(len(item.calls)))
+                    outdata[-1].append(len(item.calls))
                 elif field == 'SubName':
-                    fh.write('\t{}'.format(','.join(item.calls)))
+                    outdata[-1].append(','.join(item.calls))
                 elif field == 'Condition':
-                    fh.write('\t{}'.format(item.countif))
+                    outdata[-1].append(item.countif)
                 elif field == 'Loop':
-                    fh.write('\t{}'.format(item.countfor + item.countwhile))
+                    outdata[-1].append(item.countfor+item.countwhile)
                 elif field == 'Scope':
                     if item.static:
-                        fh.write('\tLocal')
+                        outdata[-1].append('Local')
                     else:
-                        fh.write('\tGlobal')
+                        outdata[-1].append('Global')
                 elif field == 'Prototype':
-                    fh.write('\t{}'.format(item.prototype))
+                    outdata[-1].append(item.prototype)
                 else:
-                    fh.write('\t{}'.format(item.extra.get(field,'')))
-            fh.write('\n')
-        fh.close()
+                    outdata[-1].append(item.extra.get(field,''))
+        self._log.log(10, "[{}][{}]".format(outfile, ','.join(fields)))
+        if outfile:
+            # 输出函数列表
+            fh=open(outfile,'w',encoding='utf-8')
+            for item in outdata:
+                fh.write('{}\n'.format('\t'.join([str(x) for x in item])))
+            fh.close()
+        return outdata
     @classmethod
     def getFuncCall_asdict(cls, funcinfo):
         # 输出调用的函数列表，key是函数名，value是函数出现的index(从0开始)数组(一个函数可能被多次调用)
@@ -334,7 +337,7 @@ class CscopeParser(object):
         startidx, stopidx = param[0:2]
         curfile = self._funcs[startidx].relpath
         fullpath = os.path.join(self._root, curfile)
-        fh = openTextFile(self._testcodes, fullpath, 'r')
+        fh = openTextFile(fullpath, 'r')
         lines = fh.readlines()
         fh.close()
         startline = 0
@@ -364,6 +367,7 @@ class CtagsParser(object):
     PAT_COMMENT1 = re.compile(r'//.*')
     PAT_COMMENT2 = re.compile(r'/\*(.|\n)+?\*/')
     PAT_EMPTYLINE = re.compile(r'^\s*$')
+    PAT_SRC_MACRO = re.compile('^\s*#\s*define\s+(?P<name>\S+)\s+(?P<value>\S.*?)(\s*/\*\s*(?P<cmt>\S.*?)\s*\*/\s*)?$')
     def __init__(self, tagfile, encoding=None):
         # 初始化log
         self._log = LogUtil().logger(LOGNAME2)
@@ -409,6 +413,42 @@ class CtagsParser(object):
             self._worker.join()
             self._writeCache()  # 将分析结果写入cache文件
             self._log.log(10, 'Write Cache')
+    def outputMacro(self, outfile, fields):
+        outdata = [['#Macro']]
+        for item in fields:
+            if item == 'Path':
+                outdata[-1].append('Path')
+            elif item == 'Line':
+                outdata[-1].append('Line')
+            elif item == 'Scope':
+                outdata[-1].append('Scope')
+            elif item == 'Value':
+                outdata[-1].append('Value')
+            elif item == 'Comment':
+                outdata[-1].append('Comment')
+        for tok in self._info:
+            if tok.cate == 'd':
+                outdata.append([tok.token])
+                for item in fields:
+                    if item == 'Path':
+                        outdata[-1].append(tok.path)
+                    elif item == 'Line':
+                        outdata[-1].append(tok.line)
+                    elif item == 'Scope':
+                        if tok.scope:
+                            outdata[-1].append('Global')
+                        else:
+                            outdata[-1].append('Local')
+                    elif item == 'Value':
+                        outdata[-1].append(tok.info.get('value',''))
+                    elif item == 'Comment':
+                        outdata[-1].append(tok.info.get('comment',''))
+        if outfile:
+            fh = open(outfile, 'w', encoding='utf-8')
+            for item in outdata:
+                fh.write('{}\n'.format('\t'.join([str(x) for x in item])))
+            fh.close()
+        return outdata
     def _parse(self):
         fullpath = os.path.join(self._root, self._tag)
         encoding = guessEncode(fullpath, *self._testcodes)[0]
@@ -455,7 +495,7 @@ class CtagsParser(object):
         startidx, stopidx = param[0:2]
         curfile = self._info[startidx].path
         fullpath = os.path.join(self._root, curfile)
-        fh = openTextFile(self._testcodes, fullpath, 'r')
+        fh = openTextFile(fullpath, 'r')
         lines = fh.readlines()
         fh.close()
         self._log.log(5, 'Open source file[{}]'.format(curfile))
@@ -503,6 +543,27 @@ class CtagsParser(object):
                     cmt = self._searchComment(lines, lineidx1, linecol1, lineidx2, linecol2)
                 else:
                     pass
+            elif cate == 'd':
+                lineidx1 = lineidx
+                curline = lines[lineidx1]
+                while curline.endswith('\\\n'):
+                    lineidx1 += 1
+                    curline = curline[:-2] + lines[lineidx1]
+                patret = self.PAT_SRC_MACRO.search(curline)
+                value = ''
+                cmt = ''
+                if patret:
+                    value = re.sub(r'\s+', ' ', patret.group('value'))
+                    if patret.group('name') != item.token:
+                        # error macro
+                        self._log.log(5, 'Macro[{}] in file[{}] at line[{}] with error'.format(item.token, item.path, item.line))
+                    if patret.group('cmt'):
+                        cmt = patret.group('cmt').replace('\t', '~\\t~')
+                else:
+                    # error macro
+                    self._log.log(5, 'Macro[{}] in file[{}] at line[{}] without value'.format(item.token, item.path, item.line))
+                item.info['value'] = value
+                item.info['comment'] = cmt
     def _searchComment(self, lines, startline, startcol, endline, endcol):
         return ''
     def _readCache(self):
@@ -684,7 +745,7 @@ def cscopeSourceParserEPS(filename, lines, funcname, lastendline, startline, end
             if flag1:
                 break
             else:
-                info['FunctionName'] = ret1.group('jpname')
+                info['FunctionName'] = ret1.group('jpname').replace('\t','~\\t~')
                 flag1 = True
                 logger.log(5, 'Found JPName at line[{}]'.format(curline+1))
         if ret2:
@@ -706,8 +767,35 @@ def cscopeSourceParserEPS(filename, lines, funcname, lastendline, startline, end
         if not PAT_EMPTYLINE.search(templine):
             linecount += 1
     info['SourceCount']=linecount
+    # locate function header(comment) startline
+    if lastendline > 0:
+        # 2nd~nth function in the file
+        curline = lastendline + 1
+        while PAT_EMPTYLINE.search(lines[curline]):
+            curline += 1
+    else:
+        # 1st function in the file
+        curline = startline - 1
+        # skip empty lines between header section/inline section and code section
+        while curline>=0 and PAT_EMPTYLINE.search(lines[curline]):
+            curline -= 1
+        # check first non-empty line before the function
+        testline = curline
+        while testline>=0 and (not PAT_EMPTYLINE.search(lines[testline])):
+            testline -= 1
+        tempcode = ''.join(lines[:curline+1])
+        # check first comment before the function
+        for tempret in PAT_COMMENT2.finditer(tempcode):
+            testline1 = tempcode[:tempret.start(0)].count('\n')
+            testline2 = tempcode[:tempret.end(0)].count('\n')
+        if testline1 < testline < testline2:
+            curline = testline1
+        else:
+            curline = testline
+    info['HeaderLine'] = str(curline + 1)
     # inline check
-    tempcode = ''.join(lines[lastendline:startline])
+    lastendline = int(info['HeaderLine']) - 1
+    tempcode = ''.join(lines[lastendline:startline+1])
     tempcode = PAT_COMMENT1.sub('',tempcode)
     tempcode = PAT_COMMENT2.sub('',tempcode)
     PAT_INLINE = re.compile(r'\binline\b|\b_inline_\b|\b__inline__\b')

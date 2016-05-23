@@ -83,7 +83,7 @@ class ExtractInline(object):
                     self._recursiveOutput(fh, callinfo, 1, sitem)
         fh.close()
     def _readTextFile(self, filename):
-        fh = guess.openTextFile(("cp932", "cp936"), filename, 'r')
+        fh = guess.openTextFile(filename, 'r')
         outlist = []
         for line in fh.readlines():
             line = line.strip()

@@ -24,7 +24,7 @@ class CTokens(object):
         last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
         return token.lexpos - last_cr
     def parse_file(self, filepath, tagname=''):
-        fh = openTextFile(('cp932', 'cp936'), filepath, 'r')
+        fh = openTextFile(filepath, 'r')
         text = fh.read()
         fh.close()
         if not tagname:
