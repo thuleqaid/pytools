@@ -15,10 +15,14 @@ from .multiprocess import MultiProcess
 # Usage:
 #   cscopeout = 'file path of cscope.out'
 #   cp = tagparser.CscopeParser(cscopeout, sourceparser=tagparser.cscopeSourceParserEPS)
-#   cp.outputFuncInfo('info_func.txt', ['Path','StartLine','Scope','Prototype','FunctionID','FunctionName','SubCount','SubName','SourceCount'])
-#                                      # 'FunctionName', 'FunctionID', 'SourceCount' is extracted by sourceparser function
+#   funcinfo = cp.outputFuncInfo(OUTFILE_FUNCTION, ['Path', 'HeaderLine', 'StartLine', 'StopLine', 'SubName', 'Loop', 'Prototype', 'FunctionName', 'FunctionID', 'Inline'])
 #   ctags = 'file path of tags'
 #   cp2 = tagparser.CtagsParser(ctags)
+#   macroinfo = cp2.outputMacro(OUTFILE_MACRO, ['Path', 'Line', 'Scope', 'Value', 'Comment'])
+#   varinfo = cp2.outputVar(OUTFILE_VAR, ['Path', 'Line', 'Scope', 'Type', 'Comment'])
+#   sinfo,minfo,tinfo = cp2.outputType(OUTFILE_STRUCT, ['Path', 'Line', 'Scope', 'Comment'],
+#                                      OUTFILE_MEMBER, ['Path', 'Line', 'Scope', 'Parent', 'Type', 'Comment'],
+#                                      OUTFILE_TYPEDEF, ['Path', 'Line', 'Scope', 'Category', 'Type', 'Comment'])
 
 LOGNAME = 'CscopeParser'
 LOGNAME2 = 'CtagsParser'
@@ -190,8 +194,12 @@ class CscopeParser(object):
         if outfile:
             # 输出函数列表
             fh=open(outfile,'w',encoding='utf-8')
-            for item in outdata:
-                fh.write('{}\n'.format('\t'.join([str(x) for x in item])))
+            for idx,item in enumerate(outdata):
+                if idx == 0:
+                    colidx = '#No'
+                else:
+                    colidx = idx
+                fh.write('{}\t{}\n'.format(colidx, '\t'.join([str(x) for x in item])))
             fh.close()
         return outdata
     @classmethod
@@ -445,10 +453,179 @@ class CtagsParser(object):
                         outdata[-1].append(tok.info.get('comment',''))
         if outfile:
             fh = open(outfile, 'w', encoding='utf-8')
-            for item in outdata:
-                fh.write('{}\n'.format('\t'.join([str(x) for x in item])))
+            for idx,item in enumerate(outdata):
+                if idx == 0:
+                    colidx = '#No'
+                else:
+                    colidx = idx
+                fh.write('{}\t{}\n'.format(colidx, '\t'.join([str(x) for x in item])))
             fh.close()
         return outdata
+    def outputVar(self, outfile, fields):
+        outdata = [['#Var']]
+        for item in fields:
+            if item == 'Path':
+                outdata[-1].append('Path')
+            elif item == 'Line':
+                outdata[-1].append('Line')
+            elif item == 'Scope':
+                outdata[-1].append('Scope')
+            elif item == 'Type':
+                outdata[-1].append('Type')
+            elif item == 'Comment':
+                outdata[-1].append('Comment')
+        for tok in self._info:
+            if tok.cate == 'v':
+                outdata.append([tok.token])
+                for item in fields:
+                    if item == 'Path':
+                        outdata[-1].append(tok.path)
+                    elif item == 'Line':
+                        outdata[-1].append(tok.line)
+                    elif item == 'Scope':
+                        if tok.scope:
+                            outdata[-1].append('Global')
+                        else:
+                            outdata[-1].append('Local')
+                    elif item == 'Type':
+                        outdata[-1].append(tok.info.get('type',''))
+                    elif item == 'Comment':
+                        outdata[-1].append(tok.info.get('comment',''))
+        if outfile:
+            fh = open(outfile, 'w', encoding='utf-8')
+            for idx,item in enumerate(outdata):
+                if idx == 0:
+                    colidx = '#No'
+                else:
+                    colidx = idx
+                fh.write('{}\t{}\n'.format(colidx, '\t'.join([str(x) for x in item])))
+            fh.close()
+        return outdata
+    def outputType(self, outfile1, fields1, outfile2, fields2, outfile3, fields3):
+        outdata1 = [['#Struct']]
+        for item in fields1:
+            if item == 'Path':
+                outdata1[-1].append('Path')
+            elif item == 'Line':
+                outdata1[-1].append('Line')
+            elif item == 'Scope':
+                outdata1[-1].append('Scope')
+            elif item == 'Comment':
+                outdata1[-1].append('Comment')
+        outdata2 = [['#Member']]
+        for item in fields2:
+            if item == 'Path':
+                outdata2[-1].append('Path')
+            elif item == 'Line':
+                outdata2[-1].append('Line')
+            elif item == 'Scope':
+                outdata2[-1].append('Scope')
+            elif item == 'Comment':
+                outdata2[-1].append('Comment')
+            elif item == 'Parent':
+                outdata2[-1].append('Parent')
+            elif item == 'Type':
+                outdata2[-1].append('Type')
+        outdata3 = [['#Struct']]
+        for item in fields3:
+            if item == 'Path':
+                outdata3[-1].append('Path')
+            elif item == 'Line':
+                outdata3[-1].append('Line')
+            elif item == 'Scope':
+                outdata3[-1].append('Scope')
+            elif item == 'Comment':
+                outdata3[-1].append('Comment')
+            elif item == 'Category':
+                outdata3[-1].append('Category')
+            elif item == 'Type':
+                outdata3[-1].append('Type')
+        for tok in self._info:
+            if tok.cate in ('s','g'):
+                outdata1.append([tok.token])
+                for item in fields1:
+                    if item == 'Path':
+                        outdata1[-1].append(tok.path)
+                    elif item == 'Line':
+                        outdata1[-1].append(tok.line)
+                    elif item == 'Scope':
+                        if tok.scope:
+                            outdata1[-1].append('Global')
+                        else:
+                            outdata1[-1].append('Local')
+                    elif item == 'Comment':
+                        outdata1[-1].append(tok.info.get('comment',''))
+            elif tok.cate in ('m', 'e'):
+                outdata2.append([tok.token])
+                for item in fields2:
+                    if item == 'Path':
+                        outdata2[-1].append(tok.path)
+                    elif item == 'Line':
+                        outdata2[-1].append(tok.line)
+                    elif item == 'Scope':
+                        if tok.scope:
+                            outdata2[-1].append('Global')
+                        else:
+                            outdata2[-1].append('Local')
+                    elif item == 'Comment':
+                        outdata2[-1].append(tok.info.get('comment',''))
+                    elif item == 'Parent':
+                        outdata2[-1].append(tok.extra)
+                    elif item == 'Type':
+                        outdata2[-1].append(tok.info.get('type',''))
+            elif tok.cate == 't':
+                outdata3.append([tok.token])
+                for item in fields3:
+                    parts = tok.extra.split(':',2)
+                    if item == 'Path':
+                        outdata3[-1].append(tok.path)
+                    elif item == 'Line':
+                        outdata3[-1].append(tok.line)
+                    elif item == 'Scope':
+                        if tok.scope:
+                            outdata3[-1].append('Global')
+                        else:
+                            outdata3[-1].append('Local')
+                    elif item == 'Comment':
+                        outdata3[-1].append(tok.info.get('comment',''))
+                    elif item == 'Category':
+                        if len(parts) > 2:
+                            outdata3[-1].append(parts[1])
+                        else:
+                            outdata3[-1].append(tok.extra)
+                    elif item == 'Type':
+                        if len(parts) > 2:
+                            outdata3[-1].append(parts[2])
+                        else:
+                            outdata3[-1].append(tok.extra)
+        if outfile1:
+            fh = open(outfile1, 'w', encoding='utf-8')
+            for idx,item in enumerate(outdata1):
+                if idx == 0:
+                    colidx = '#No'
+                else:
+                    colidx = idx
+                fh.write('{}\t{}\n'.format(colidx, '\t'.join([str(x) for x in item])))
+            fh.close()
+        if outfile2:
+            fh = open(outfile2, 'w', encoding='utf-8')
+            for idx,item in enumerate(outdata2):
+                if idx == 0:
+                    colidx = '#No'
+                else:
+                    colidx = idx
+                fh.write('{}\t{}\n'.format(colidx, '\t'.join([str(x) for x in item])))
+            fh.close()
+        if outfile3:
+            fh = open(outfile3, 'w', encoding='utf-8')
+            for idx,item in enumerate(outdata3):
+                if idx == 0:
+                    colidx = '#No'
+                else:
+                    colidx = idx
+                fh.write('{}\t{}\n'.format(colidx, '\t'.join([str(x) for x in item])))
+            fh.close()
+        return outdata1,outdata2,outdata3
     def _parse(self):
         fullpath = os.path.join(self._root, self._tag)
         encoding = guessEncode(fullpath, *self._testcodes)[0]
@@ -478,14 +655,35 @@ class CtagsParser(object):
                         self._worker.addJob((startidx, len(self._info)))
                     startidx = len(self._info)
                     lastfile = path
-                self._info.append(self.TagInfo(token=token,
-                                               path=path,
-                                               line=lineno,
-                                               cate=cate,
-                                               extra=tuple(parts),
-                                               scope=scope,
-                                               info={}))
-                self._log.log(15, self._info[-1])
+                # in case of len(parts) == 2: define nested struct
+                if len(parts) > 0:
+                    for partitem in parts:
+                        if partitem.startswith('typedef:'):
+                            self._info.append(self.TagInfo(token=token,
+                                                           path=path,
+                                                           line=lineno,
+                                                           cate='t',
+                                                           extra=partitem,
+                                                           scope=scope,
+                                                           info={}))
+                        else:
+                            self._info.append(self.TagInfo(token=token,
+                                                           path=path,
+                                                           line=lineno,
+                                                           cate=cate,
+                                                           extra=partitem,
+                                                           scope=scope,
+                                                           info={}))
+                        self._log.log(15, self._info[-1])
+                else:
+                    self._info.append(self.TagInfo(token=token,
+                                                   path=path,
+                                                   line=lineno,
+                                                   cate=cate,
+                                                   extra='',
+                                                   scope=scope,
+                                                   info={}))
+                    self._log.log(15, self._info[-1])
             else:
                 self._log.log(5, 'Miss Match:{}'.format(line))
         if lastfile != '':
@@ -503,47 +701,177 @@ class CtagsParser(object):
             item = self._info[idx]
             lineidx = int(item.line) - 1
             cate = item.cate
-            if cate == 't':
+            if cate in ('s', 'g'):
+                # find startpos/endpos of struct/enum definition
                 lineidx1 = lineidx
-                lineidx2 = lineidx
-                linecol1 = 0
-                linecol2 = 0
-                # search end of typedef
-                patret = re.search(r'\b'+item.token+r'\b', lines[lineidx2])
-                linecol2 = patret.end()
-                while lines[lineidx2].find(';', linecol2) < 0:
-                    linecol2 = 0
-                    lineidx2 += 1
-                else:
-                    linecol2 = lines[lineidx2].find(';', linecol2)
-                # search start of typedef
-                patret = self.PAT_TYPEDEF.search(lines[lineidx1])
-                while not patret and lineidx1 > 0:
-                    lineidx1 -= 1
-                    patret = self.PAT_TYPEDEF.search(lines[lineidx1])
-                if patret:
-                    linecol1 = patret.start()
-                    if lineidx1 < lineidx2:
-                        code = lines[lineidx1][linecol1:]
-                        lineidx = lineidx1 + 1
-                        while lineidx < lineidx2:
-                            code += lines[lineidx]
-                            lineidx += 1
-                        code += lines[lineidx2][:linecol2+1]
+                cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), lines[lineidx1])
+                linecol1 = cmtfree.index(item.token)
+                paren = [0] * 3
+                flag = True
+                lineidx2 = lineidx1
+                linecol2 = linecol1
+                while flag or any(paren):
+                    while linecol2 < len(cmtfree):
+                        if cmtfree[linecol2] == '{':
+                            paren[0] += 1
+                            if paren[0] == 1:
+                                flag = False
+                        elif cmtfree[linecol2] == '}':
+                            paren[0] -= 1
+                            if not any(paren):
+                                break
+                        elif cmtfree[linecol2] == '[':
+                            paren[1] += 1
+                        elif cmtfree[linecol2] == ']':
+                            paren[1] -= 1
+                        elif cmtfree[linecol2] == '(':
+                            paren[2] += 1
+                        elif cmtfree[linecol2] == ')':
+                            paren[2] -= 1
+                        linecol2 += 1
                     else:
-                        code = lines[lineidx1][linecol1:linecol2+1]
-                    code = self.PAT_COMMENT1.sub('',code)
-                    code = self.PAT_COMMENT2.sub('',code)
-                    newcode = []
-                    for templine in code.splitlines():
-                        if not self.PAT_EMPTYLINE.search(templine):
-                            newcode.append(templine.rstrip())
-                    code = '\n'.join(newcode)
-                    # search comment
-                    cmt = self._searchComment(lines, lineidx1, linecol1, lineidx2, linecol2)
+                        lineidx2 += 1
+                        linecol2 = 0
+                        cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), lines[lineidx2])
+                cmt1 = cmt2 = cmt3 = ''
+                # comment before start of struct/enum
+                patret = re.search(r'^\s*/\*+(.*?)\*+/\s*$', lines[lineidx1 - 1])
+                if patret:
+                    cmt1 = patret.group(1).strip().replace('\t', '~\\t~')
                 else:
+                    patret = re.search(r'^\s*//(.*)', lines[lineidx1 - 1])
+                    if patret:
+                        cmt1 = patret.group(1).strip().replace('\t', '~\\t~')
+                # comment at the end of startline of struct/enum
+                patret = self.PAT_COMMENT2.search(lines[lineidx1][linecol1:])
+                if patret:
+                    cmt2 = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                else:
+                    patret = self.PAT_COMMENT1.search(lines[lineidx1][linecol1:])
+                    if patret:
+                        cmt2 = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                # comment at the end of endline of struct/enum
+                patret = self.PAT_COMMENT2.search(lines[lineidx2][linecol2:])
+                if patret:
+                    cmt3 = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                else:
+                    patret = self.PAT_COMMENT1.search(lines[lineidx2][linecol2:])
+                    if patret:
+                        cmt3 = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                item.info['comment'] = cmt2 or cmt3 or cmt1
+            elif cate == 'm':
+                # member of struct
+                curline = lines[lineidx]
+                cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), curline)
+                varidx = cmtfree.index(item.token)
+                vartype = re.sub(r'\bstatic\b', r'', cmtfree[:varidx]).strip()
+                vartype = re.sub(r'\s+', ' ', vartype)
+                varidx += len(item.token)
+                patret = self.PAT_COMMENT2.search(curline[varidx:])
+                if patret:
+                    cmt = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                else:
+                    patret = self.PAT_COMMENT1.search(curline[varidx:])
+                    if patret:
+                        cmt = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                    else:
+                        cmt = ''
+                        self._log.log(5, 'Member{} in file[{}] at line[{}] without a comment'.format(item.token, item.path, item.line))
+                item.info['type'] = vartype
+                item.info['comment'] = cmt
+            elif cate == 'e':
+                # member of enum
+                curline = lines[lineidx]
+                cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), curline)
+                varidx = cmtfree.index(item.token)
+                varidx += len(item.token)
+                patret = self.PAT_COMMENT2.search(curline[varidx:])
+                if patret:
+                    cmt = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                else:
+                    patret = self.PAT_COMMENT1.search(curline[varidx:])
+                    if patret:
+                        cmt = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                    else:
+                        cmt = ''
+                        self._log.log(5, 'Member{} in file[{}] at line[{}] without a comment'.format(item.token, item.path, item.line))
+                item.info['type'] = '__ENUM'
+                item.info['comment'] = cmt
+            elif cate == 't':
+                # find startpos/endpos of typedef
+                lineidx2 = lineidx
+                cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), lines[lineidx2])
+                linecol2 = cmtfree.index(item.token)
+                paren = [0] * 3
+                flag = True
+                lineidx1 = lineidx2
+                linecol1 = linecol2
+                while flag or any(paren):
+                    while linecol1 >= 0:
+                        if cmtfree[linecol1] == '{':
+                            paren[0] += 1
+                            if not any(paren):
+                                break
+                        elif cmtfree[linecol1] == '}':
+                            paren[0] -= 1
+                            if paren[0] == -1:
+                                flag = False
+                        elif cmtfree[linecol1] == '[':
+                            paren[1] += 1
+                        elif cmtfree[linecol1] == ']':
+                            paren[1] -= 1
+                        elif cmtfree[linecol1] == '(':
+                            paren[2] += 1
+                        elif cmtfree[linecol1] == ')':
+                            paren[2] -= 1
+                        elif flag and cmtfree[linecol1] == ';':
+                            # type rename without definition
+                            # e.g. typedef int INT;
+                            flag = False
+                            lineidx1 = -1
+                            break
+                        linecol1 -= 1
+                    else:
+                        lineidx1 -= 1
+                        linecol1 = 0
+                        if lineidx1 < 0:
+                            break
+                        cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), lines[lineidx1])
+                cmt1 = cmt2 = cmt3 = ''
+                if lineidx1 < 0:
                     pass
+                else:
+                    if linecol1 == 0:
+                        newlineidx1 = lineidx1 - 1
+                    else:
+                        newlineidx1 = lineidx1
+                    # comment before start of struct/enum
+                    patret = re.search(r'^\s*/\*+(.*?)\*+/\s*$', lines[newlineidx1 - 1])
+                    if patret:
+                        cmt1 = patret.group(1).strip().replace('\t', '~\\t~')
+                    else:
+                        patret = re.search(r'^\s*//(.*)', lines[newlineidx1 - 1])
+                        if patret:
+                            cmt1 = patret.group(1).strip().replace('\t', '~\\t~')
+                    # comment at the end of startline of struct/enum
+                    patret = self.PAT_COMMENT2.search(lines[newlineidx1][linecol1:])
+                    if patret:
+                        cmt2 = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                    else:
+                        patret = self.PAT_COMMENT1.search(lines[newlineidx1][linecol1:])
+                        if patret:
+                            cmt2 = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                    # comment at the end of endline of struct/enum
+                    patret = self.PAT_COMMENT2.search(lines[lineidx2][linecol2:])
+                    if patret:
+                        cmt3 = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                    else:
+                        patret = self.PAT_COMMENT1.search(lines[lineidx2][linecol2:])
+                        if patret:
+                            cmt3 = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                item.info['comment'] = cmt2 or cmt3 or cmt1
             elif cate == 'd':
+                # define
                 lineidx1 = lineidx
                 curline = lines[lineidx1]
                 while curline.endswith('\\\n'):
@@ -564,8 +892,26 @@ class CtagsParser(object):
                     self._log.log(5, 'Macro[{}] in file[{}] at line[{}] without value'.format(item.token, item.path, item.line))
                 item.info['value'] = value
                 item.info['comment'] = cmt
-    def _searchComment(self, lines, startline, startcol, endline, endcol):
-        return ''
+            elif cate == 'v':
+                # global variable
+                curline = lines[lineidx]
+                cmtfree = self.PAT_COMMENT2.sub(lambda matchobj: ' ' * len(matchobj.group(0)), curline)
+                varidx = cmtfree.index(item.token)
+                vartype = re.sub(r'\bstatic\b', r'', cmtfree[:varidx]).strip()
+                vartype = re.sub(r'\s+', ' ', vartype)
+                varidx += len(item.token)
+                patret = self.PAT_COMMENT2.search(curline[varidx:])
+                if patret:
+                    cmt = patret.group(0)[2:-2].strip().replace('\t', '~\\t~')
+                else:
+                    patret = self.PAT_COMMENT1.search(curline[varidx:])
+                    if patret:
+                        cmt = patret.group(0)[2:].strip().replace('\t', '~\\t~')
+                    else:
+                        cmt = ''
+                        self._log.log(5, 'Variable{} in file[{}] at line[{}] without a comment'.format(item.token, item.path, item.line))
+                item.info['type'] = vartype
+                item.info['comment'] = cmt
     def _readCache(self):
         fh = open(os.path.join(self._root, 'tags.cache'), 'rb')
         self._info = [self.TagInfo(**x) for x in pickle.load(fh)]
