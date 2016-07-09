@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 # VERSION: 0.1
 import codecs
+import os
 from .logutil import LogUtil, registerLogger
 
 LOGNAME = 'GuessEncode'
@@ -31,6 +32,51 @@ def openTextFile(*args, **kwargs):
     else:
         return None
 
+def titledText(strlist, sep='', selectedtitle={}):
+    # Comment Line: Line starts with '#'
+    # Title Line: Line starts with '#@'
+    flag = False
+    data = []
+    for idx, line in enumerate(strlist):
+        if line.startswith('#@'):
+            titleline = line[2:]
+            if sep == '':
+                # Guess seperator in ',','\t',':'
+                seplist = ['\t', ',', ':']
+                for sepitem in seplist:
+                    if sepitem in titleline:
+                        sep = sepitem
+                        break
+            else:
+                if sep not in titleline:
+                    sep = ''
+            if sep == '':
+                # Only one column
+                title = [titleline]
+            else:
+                title = titleline.split(sep)
+            flag = True
+        elif line.startswith('#'):
+            pass
+        elif flag:
+            # Date Lines
+            if line.strip() == '':
+                # Empty Line
+                pass
+            else:
+                if sep == '':
+                    data.append([line])
+                else:
+                    data.append(line.split(sep))
+    titledict = dict(zip(title, range(len(title))))
+    seltitledict = dict(selectedtitle)
+    for key in seltitledict.keys():
+        seltitledict[key] = titledict.get(seltitledict[key], -1)
+    outinfo = { 'data': data,
+                'title': titledict,
+                'seltitle': seltitledict}
+    return outinfo
+
 def readTextFile(striptype, *args, **kwargs):
     fh = openTextFile(*args, **kwargs)
     if striptype == 'lstrip':
@@ -45,15 +91,7 @@ def readTextFile(striptype, *args, **kwargs):
     for idx,line in enumerate(fh.readlines()):
         if stripfunc:
             line = stripfunc(line)
-        if line.startswith('#'):
-            if idx == 0:
-                # header line
-                outlist.append(line)
-            else:
-                # comment line
-                pass
-        else:
-            outlist.append(line)
+        outlist.append(line)
     fh.close()
     return outlist
 
@@ -118,3 +156,24 @@ def guessEncode(fname,*encodelist):
     logger.log(30, 'GuessEncode: Failed to find encode')
     return (enc,bomlen)
 
+def findExe(prgname):
+    pathlist = os.getenv('PATH').split(';')
+    found = ''
+    for item in pathlist:
+        if os.path.isfile(os.path.join(item,prgname)):
+            found = item
+            break
+    ## .bat version
+    # @echo off
+    # set new="%path:;=" "%"
+    # set curdir=%cd%
+    # set found=
+    # for %%a in (%new%) do (
+    #   cd /d %%~a
+    #   if exist python.exe set found=%%~a
+    # )
+    # cd /d %curdir%
+    # if defined found (
+    #   echo %found%
+    # )
+    return found

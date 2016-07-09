@@ -19,7 +19,7 @@ class MultiThread(object):
         self._cbfuncs = {}
         self._log = LogUtil().logger(LOGNAME)
     def register(self, target, group='DEFAULT'):
-        if self._finishCheck:
+        if self._finish:
             self._cbfuncs[group] = target
             self._log.log(10, 'Add Function for [{}]'.format(group))
         else:
