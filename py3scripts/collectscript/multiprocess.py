@@ -25,3 +25,8 @@ class MultiProcess(object):
             kwargs.setdefault(key, self._kwargs[key])
         retcode = subprocess.call(*args, **kwargs)
         return retcode
+    def run(self, *args, **kwargs):
+        for key in self._kwargs.keys():
+            kwargs.setdefault(key, self._kwargs[key])
+        completeprocess = subprocess.run(*args, **kwargs)
+        return completeprocess
