@@ -495,7 +495,7 @@ class CResult(object):
         return newline
     def _htmlcase(self, resultfile):
         # 生成测试用例的HTML区块
-        fh = openTextFile(['cp932','cp936'], resultfile, 'r')
+        fh = openTextFile(resultfile, 'r')
         lines = fh.readlines()
         fh.close()
         results = []
@@ -596,7 +596,7 @@ class CBatch(object):
         #   配置文件第一有效行为代码路径
         #   配置文件第二有效行为工程文件路径
         #   配置文件第三有效行开始为测试用例文件
-        fh = openTextFile(('cp932','cp936'), conffile, 'r')
+        fh = openTextFile(conffile, 'r')
         self._csv = []
         rdidx = 0
         for line in fh.readlines():
@@ -801,7 +801,7 @@ class WinAMS(object):
         fh.write('@echo on\n')
         fh.close()
     def _loadCSV(self, csvfile):
-        fh = openTextFile(('cp932','cp936'),csvfile,'r')
+        fh = openTextFile(csvfile,'r')
         stub = []
         var = []
         case = []
@@ -847,7 +847,7 @@ class WinAMS(object):
                                     ret      = retflag,
                                     param    = paramflag)
     def _writeAccessFunc(self, modfile, svarlist, noinclude=False):
-        fh = openTextFile(('cp932','cp936'), modfile, 'a')
+        fh = openTextFile(modfile, 'a')
         funcname = os.path.splitext(os.path.basename(modfile))[0]
         if not noinclude:
             fh.write('#include <stdio.h>\n')
