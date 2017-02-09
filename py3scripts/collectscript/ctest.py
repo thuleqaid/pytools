@@ -17,24 +17,47 @@ registerLogger(LOGNAME)
 registerLogger(LOGNAME2)
 
 # 使用方法：
+# 0. 环境准备
+#    0.1 包含测试目标函数的可以编译成可执行文件的一套代码
+#    0.2 将下面的dmy_test.h和dmy_test.c复制到代码目录中并加入到工程中
+#    0.3 测试目标函数所在的文件以及main函数所在的文件必须包含dmy_test.h头文件
+#        * 可以在共通头文件中包含dmy_test.h来实现
+#    0.4 在main函数中调用TestMain()函数
+#        * 这一步会导致链接变得不通过，后面的代码注入会自动生成TestMain函数的实体
 # 1. 代码注入
 #    根据测试用例文件格式不同，需要编写一个类似WinAMS的class
+#    from collectscript import ctest
 #    ams = ctest.WinAMS()
 #    ams.test(测试用例设计.csv, 代码路径)
 # 2. 编译运行C工程文件
-#    下面的命令可以在命令行下编译和运行
-#    set devenv="%VS80COMNTOOLS%..\IDE\devenv"
-#    set sln="d:\xxx\xxx.sln"
-#    %devenv% %sln% /Build
-#    %devenv% %sln% /RunExit
-#    下面的命令可以等待10秒
-#    ping -n 10 127.0.0.1 >nul
+#    * 对于VisualStudio系列软件，可以在命令行下编译和运行
+#      set devenv="%VS80COMNTOOLS%..\IDE\devenv"
+#      set sln="d:\xxx\xxx.sln"
+#      %devenv% %sln% /Build
+#      %devenv% %sln% /RunExit
+#    * 下面的命令可以等待10秒
+#      ping -n 10 127.0.0.1 >nul
 # 3. 结果生成
+#    from collectscript import ctest
 #    cr = ctest.CResult()
 #    cr.report()
-# 4. 代码还原
+# 4. 代码还原，同时保存结果到CSV同名目录中
 #    restore.bat
-# 5. 批量处理
+#    * 查看html结果文件需要datatables, jquery和bootstap 3个JS库
+#      目录构造如下：
+#      lib
+#      ┣━bootstrap
+#      ┃  ┣━css
+#      ┃  ┣━fonts
+#      ┃  ┗━js
+#      ┣━datatables
+#      ┃  ┣━css
+#      ┃  ┣━images
+#      ┃  ┗━js
+#      ┗━jquery
+#      另外，lib要放在html文件的上一级目录
+# 5. 批量处理（前提：使用VS2005Pro）
+#    * 不是VS2005Pro，但是可以通过命令行来完成编译链接的情况下，可以修改CBatch类来实现批处理
 #    5.1 脚本文件1(batch.py)
 #        from collectscript import ctest
 #        if __name__ == '__main__':
@@ -68,6 +91,8 @@ registerLogger(LOGNAME2)
 # #else
 # #define EXTERN extern
 # #endif
+# /* Comment the following line if fopen_s is not available */
+# #define HAVE_FOPEN_S
 # #define _dmy_step 3
 # #define _dmy_size (3072)
 # EXTERN char _dmy_record[_dmy_size];
@@ -241,8 +266,8 @@ class CResult(object):
 		<link type="text/css" href="../lib/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
 		<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
 		<script type="text/javascript" src="../lib/bootstrap/js/bootstrap.min.js"></script>
-		<link rel="stylesheet" type="text/css" href="../lib/datatables/datatables.min.css">
-		<script type="text/javascript" charset="utf8" src="../lib/datatables/datatables.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="../lib/datatables/css/jquery.dataTables.min.css">
+		<script type="text/javascript" charset="utf8" src="../lib/datatables/js/jquery.dataTables.min.js"></script>
 		<script type="text/javascript">
 			function updateCss() {
 				var result = ''')
@@ -958,7 +983,11 @@ class WinAMS(object):
             fh.write('    '+pat_stripconst.sub(' ',funcdetail[i+1][1])+';\n')
         fh.write('    FILE *fp;\n')
         resultfile = os.path.abspath(self.csvinfo.funcno+'.txt').replace('\\','\\\\')
+        fh.write('    #ifdef HAVE_FOPEN_S\n')
         fh.write('    fopen_s(&fp, "{}", "wt");\n'.format(resultfile))
+        fh.write('    #else\n')
+        fh.write('    fp = fopen("{}", "wt");\n'.format(resultfile))
+        fh.write('    #endif\n')
         fh.write('    for (_g_test_i_ = 0; _g_test_i_ < {}; ++_g_test_i_)\n'.format(len(self.csvinfo.case)))
         fh.write('    {\n')
         fh.write('        /* initialize */\n')
