@@ -19,7 +19,7 @@ import shutil
 import xml.parsers.expat
 from collectscript import logutil, guess, multiprocess
 
-if hasattr(sys,'frozen'):
+if hasattr(sys, 'frozen'):
     SELFPATH = logutil.scriptPath(sys.executable)
 else:
     SELFPATH = logutil.scriptPath(__file__)
@@ -40,7 +40,7 @@ criteria binary
 folder-report layout:side-by-side options:display-mismatches,column-size,column-timestamp title:"{title}" output-to:"{summary1}" output-options:html-color
 folder-report layout:xml options:display-all,column-size,column-timestamp title:"title" output-to:"{summary2}"
 '''
-    DEFAULT_SCRIPT2 = '''file-report layout:side-by-side options:display-all,line-numbers title:"{title}" output-to:"{outfile}" output-options:html-color,wrap-word "{source1}" "{source2}"
+    DEFAULT_SCRIPT2 = '''file-report layout:side-by-side options:display-all,line-numbers title:"{title}" output-to:"{outfile}" output-options:html-color "{source1}" "{source2}"
 '''
     def __init__(self):
         self._log = logutil.LogUtil().logger(LOGNAME)
@@ -50,37 +50,60 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
         self._filter = self.DEFAULT_FILTER
         self._summaryfile = self.DEFAULT_SUMMARY
         self._exepath = ''
+        self._path1 = ''
+        self._path2 = ''
+        self._outpath = ''
+        self._tmppath = ''
+        self._xmlstatus = ''
+        self._xmllevel = 0
+        self._xmlpath = []
+        self._xmldirpath = []
         self._xmlresult = {}
     def setBComp(self, exepath):
         path = os.path.abspath(exepath)
         if os.path.isfile(path):
             self._exepath = path
+            self._log.log(20, "Set BeyondCompare Path: {}".format(self._exepath))
         else:
             self._exepath = ''
+            self._log.log(20, "Set BeyondCompare Path: Failed")
     def setPath(self, path1, path2, outpath, tmppath):
         self._path1 = os.path.abspath(path1)
         self._path2 = os.path.abspath(path2)
         self._outpath = os.path.abspath(outpath)
         self._tmppath = os.path.abspath(tmppath)
+        self._log.log(20, "Source Path 1:{}".format(self._path1))
+        self._log.log(20, "Source Path 2:{}".format(self._path2))
+        self._log.log(20, "Output Path:{}".format(self._outpath))
+        self._log.log(20, "Temp Path:{}".format(self._tmppath))
     def setFilter(self, filter):
         if filter == "":
             self._filter = self.DEFAULT_FILTER
         else:
             self._filter = filter
+        self._log.log(20, "Set File Filter:{}".format(self._filter))
+    def setSummaryFile(self, summary):
+        self._summaryfile = summary
+        self._log.log(20, "Set Summary File:{}".format(self._summaryfile))
     def run1(self):
         # Compare folders and output summary report
+        self._log.log(20, "Generate Script 1")
         self._genScript1()
         mp = multiprocess.MultiProcess()
         exeinfo = [self._exepath, '@{}'.format(os.path.join(self._tmppath, 'script1.txt'))]
+        self._log.log(20, "Run Script 1")
         mp.run(exeinfo)
     def run2(self):
         # Compare each different files
+        self._log.log(20, "Generate Script 2")
         self._genScript2()
         mp = multiprocess.MultiProcess()
         exeinfo = [self._exepath, '@{}'.format(os.path.join(self._tmppath, 'script2.txt'))]
+        self._log.log(20, "Run Script 2")
         mp.run(exeinfo)
     def run3(self):
         # Patch summary report
+        self._log.log(20, "Patch Summary File:{}".format(os.path.join(self._outpath,self._summaryfile)))
         # load report file
         fh = guess.openTextFile(os.path.join(self._outpath, self._summaryfile), 'r')
         data = fh.read()
@@ -158,6 +181,15 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
         if len(img) > 0:
             imgpath = os.path.join(self._outpath, img[0])
             shutil.rmtree(os.path.dirname(imgpath))
+    def run4(self, neighbors=5):
+        # Patch individual diff file
+        if len(self._xmlresult) <= 0:
+            self._parseXml()
+        for item in self._xmlresult.get('diff', ()):
+            fname = os.path.join(self._outpath, item+".html")
+            self._patchHtml(fname, neighbors)
+    def run5(self):
+        shutil.rmtree(self._tmppath)
     def _patchSummaryTd(self, tdclass, tdtext):
         pat_img = re.compile(r'<img src="(?P<image>.*?)".*?\balt="(?P<alt>.*?)".*?>')
         pos, imgcount = 0, -1
@@ -167,28 +199,50 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
             images.append(item.group('image'))
             if item.group('alt') == '<DIR>' and 'zip' not in images[-1].lower():
                 flag_dir = True
-            pos=item.end(0)
+            pos = item.end(0)
             imgcount = idx
         if not flag_dir:
             imgcount += 1
-        if "DirItemDiff" in tdclass:
-            flag_target = True
-        else:
-            flag_target = False
+        flag_target = "DirItemDiff" in tdclass
         return {'link_target': flag_target,
                 'level':imgcount,
                 'name':tdtext[pos:].strip(),
                 'is_dir':flag_dir,
                 'image':set(images)}
-    def run4(self):
-        # Patch individual diff file
-        if len(self._xmlresult) <= 0:
-            self._parseXml()
-        for item in self._xmlresult.get('diff', ()):
-            fname = os.path.join(self._outpath, item+".html")
-            self._patchHtml(fname)
-    def _patchHtml(self, fname):
-        pass
+    def _patchHtml(self, fname, neighbors):
+        self._log.log(20, "Patch Html File:{}".format(fname))
+        fh = guess.openTextFile(fname, 'r')
+        lines = fh.readlines()
+        fh.close()
+        ptn_tr = re.compile(r'^<tr class="')
+        ptn_td = re.compile(r'^<td class=".*?\bAlignCenter\b.*?">(?P<compare>.*?)</td>')
+        linelist = []
+        complist = []
+        for idx in range(len(lines)):
+            ret1 = ptn_tr.search(lines[idx])
+            ret2 = ptn_td.search(lines[idx])
+            if ret1:
+                linelist.append(idx)
+            elif ret2:
+                comp = ret2.group('compare')
+                if comp == '=':
+                    complist.append(0)
+                elif comp == '&nbsp;':
+                    complist.append(complist[-1])
+                else:
+                    complist.append(neighbors)
+        self._log.log(10, "Linelist:{}".format(repr(linelist)))
+        self._log.log(10, "Complist:{}".format(repr(complist)))
+        for i in range(1, len(complist)):
+            complist[i] = max(complist[i], complist[i-1] - 1)
+        for i in range(len(complist)-2, 0, -1):
+            complist[i] = max(complist[i], complist[i+1] - 1)
+        self._log.log(10, "Adjusted Complist:{}".format(repr(complist)))
+        for i in range(len(linelist)-1, -1, -1):
+            lines.insert(linelist[i]+1, '<td class="TextItemNum AlignRight">{}</td>'.format(complist[i]))
+        fh = open(fname, 'w', encoding='utf-8')
+        fh.writelines(lines)
+        fh.close()
     def _genScript1(self, title="Folder Compare Report"):
         fname = os.path.join(self._tmppath, 'script1.txt')
         info = {'path1':self._path1,
@@ -205,20 +259,32 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
         with open(fname, 'w') as fh:
             fh.write(self._script0.format(logpath=os.path.join(self._tmppath, 'log1.txt')))
             fh.write(self._script1.format(**info))
+    def _genScript2(self):
+        self._parseXml()
+        fname = os.path.join(self._tmppath, 'script2.txt')
+        with open(fname, 'w') as fh:
+            fh.write(self._script0.format(logpath=os.path.join(self._tmppath, 'log2.txt')))
+            for item in self._xmlresult.get('diff', ()):
+                info = {'title':item,
+                        'source1':os.path.join(self._path1, item),
+                        'source2':os.path.join(self._path2, item),
+                        'outfile':os.path.join(self._outpath, item+".html")
+                }
+                fh.write(self._script2.format(**info))
     def _xml_start_element(self, name, attrs):
         self._xmlpath.append(name)
         status = attrs.get('status', '')
         if status != '':
             self._xmlstatus = status
             self._xmllevel = len(self._xmlpath)
-        if name in ('foldercomp'):
+        if name == 'foldercomp':
             self._xmldirpath.append('')
     def _xml_end_element(self, name):
         if len(self._xmlpath) == self._xmllevel:
             self._xmllevel = 0
             self._xmlstatus = ''
         self._xmlpath.pop(-1)
-        if name in ('foldercomp'):
+        if name == 'foldercomp':
             self._xmldirpath.pop(-1)
     def _xml_char_data(self, data):
         if len(self._xmlpath) > 3 and self._xmlpath[-1] == 'name':
@@ -242,18 +308,6 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
         self._xmldirpath = []
         self._xmlresult = {}
         p.Parse(data, 1)
-    def _genScript2(self):
-        self._parseXml()
-        fname = os.path.join(self._tmppath, 'script2.txt')
-        with open(fname, 'w') as fh:
-            fh.write(self._script0.format(logpath=os.path.join(self._tmppath, 'log2.txt')))
-            for item in self._xmlresult.get('diff', ()):
-                info = {'title':item,
-                        'source1':os.path.join(self._path1, item),
-                        'source2':os.path.join(self._path2, item),
-                        'outfile':os.path.join(self._outpath, item+".html")
-                }
-                fh.write(self._script2.format(**info))
 
 if __name__ == '__main__':
     logutil.logConf(LOGCONFIG)
@@ -268,5 +322,7 @@ if __name__ == '__main__':
     fc.setPath(path1, path2, path3, path4)
     fc.setBComp(r'c:\Program Files\Beyond Compare 3\BCompare.exe')
     fc.run1()
-    # fc.run2()
+    fc.run2()
     fc.run3()
+    fc.run4()
+    fc.run5()
