@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>FolderComparer</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="3" column="2">
+      <widget class="QPushButton" name="btnPathTemppath">
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Filter</string>
+       </property>
+       <property name="buddy">
+        <cstring>editFilter</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QPushButton" name="btnOutpath">
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="DropEdit" name="editOutpath"/>
+     </item>
+     <item row="0" column="1">
+      <widget class="DropEdit" name="editPath1"/>
+     </item>
+     <item row="0" column="2">
+      <widget class="QPushButton" name="btnPath1">
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="DropEdit" name="editPath2"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Output Path</string>
+       </property>
+       <property name="buddy">
+        <cstring>editOutpath</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QPushButton" name="btnPath2">
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Modified Source Path</string>
+       </property>
+       <property name="buddy">
+        <cstring>editPath2</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="DropEdit" name="editTemppath"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Temp Path</string>
+       </property>
+       <property name="buddy">
+        <cstring>editTemppath</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Base Source Path</string>
+       </property>
+       <property name="buddy">
+        <cstring>editPath1</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2">
+      <widget class="QPushButton" name="btnBCompare">
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="DropEdit" name="editBCompare"/>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>BCompare.exe Path</string>
+       </property>
+       <property name="buddy">
+        <cstring>editBCompare</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1" colspan="2">
+      <widget class="QLineEdit" name="editFilter">
+       <property name="text">
+        <string notr="true">*.c;*.h</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Summary Filename</string>
+       </property>
+       <property name="buddy">
+        <cstring>editSummary</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1" colspan="2">
+      <widget class="QLineEdit" name="editSummary">
+       <property name="text">
+        <string notr="true">Report.html</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="4" column="0">
+      <widget class="QPushButton" name="btnStep5">
+       <property name="text">
+        <string>Clear temp path</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QSpinBox" name="spinBox">
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="value">
+        <number>5</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QPushButton" name="btnStep2">
+       <property name="text">
+        <string>Diff folder</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QPushButton" name="btnStep1">
+       <property name="text">
+        <string>Generate Summary</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="btnStep3">
+       <property name="text">
+        <string>Patch Summary</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QPushButton" name="btnStep4">
+       <property name="text">
+        <string>Patch diff</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0" colspan="2">
+      <widget class="QPushButton" name="btnAll">
+       <property name="text">
+        <string>All</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DropEdit</class>
+   <extends>QLineEdit</extends>
+   <header>dropedit.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>editPath1</tabstop>
+  <tabstop>btnPath1</tabstop>
+  <tabstop>editPath2</tabstop>
+  <tabstop>btnPath2</tabstop>
+  <tabstop>editOutpath</tabstop>
+  <tabstop>btnOutpath</tabstop>
+  <tabstop>editTemppath</tabstop>
+  <tabstop>btnPathTemppath</tabstop>
+  <tabstop>editBCompare</tabstop>
+  <tabstop>btnBCompare</tabstop>
+  <tabstop>editFilter</tabstop>
+  <tabstop>editSummary</tabstop>
+  <tabstop>btnStep1</tabstop>
+  <tabstop>btnStep2</tabstop>
+  <tabstop>btnStep3</tabstop>
+  <tabstop>btnStep4</tabstop>
+  <tabstop>spinBox</tabstop>
+  <tabstop>btnStep5</tabstop>
+  <tabstop>btnAll</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btnPath1</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnPath1()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>421</x>
+     <y>18</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>343</x>
+     <y>4</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnPath2</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnPath2()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>448</x>
+     <y>53</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>475</x>
+     <y>36</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnOutpath</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnOutpath()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>425</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>475</x>
+     <y>76</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnPathTemppath</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnTemppath()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>447</x>
+     <y>106</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>474</x>
+     <y>114</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnBCompare</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnBCompare()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>438</x>
+     <y>137</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>475</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnStep1</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStep1()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>187</x>
+     <y>221</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>282</x>
+     <y>222</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnStep2</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStep2()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>196</x>
+     <y>248</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>332</x>
+     <y>255</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnStep3</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStep3()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>191</x>
+     <y>281</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>388</x>
+     <y>281</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnStep4</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStep4()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>192</x>
+     <y>312</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>330</x>
+     <y>336</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnStep5</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStep5()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>200</x>
+     <y>345</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>423</x>
+     <y>344</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnAll</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStepAll()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>262</x>
+     <y>372</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>437</x>
+     <y>328</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onBtnPath1()</slot>
+  <slot>onBtnPath2()</slot>
+  <slot>onBtnOutpath()</slot>
+  <slot>onBtnTemppath()</slot>
+  <slot>onBtnBCompare()</slot>
+  <slot>onBtnStep1()</slot>
+  <slot>onBtnStep2()</slot>
+  <slot>onBtnStep3()</slot>
+  <slot>onBtnStep4()</slot>
+  <slot>onBtnStep5()</slot>
+  <slot>onBtnStepAll()</slot>
+ </slots>
+</ui>
