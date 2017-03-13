@@ -154,6 +154,20 @@
    </item>
    <item>
     <layout class="QGridLayout" name="gridLayout_2">
+     <item row="0" column="1">
+      <widget class="QPushButton" name="btnOpenHtml">
+       <property name="text">
+        <string>Open Summary</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QPushButton" name="btnOpenDir">
+       <property name="text">
+        <string>Browse Output Path</string>
+       </property>
+      </widget>
+     </item>
      <item row="4" column="0">
       <widget class="QPushButton" name="btnStep5">
        <property name="text">
@@ -167,7 +181,7 @@
         <number>1</number>
        </property>
        <property name="value">
-        <number>5</number>
+        <number>1</number>
        </property>
       </widget>
      </item>
@@ -203,6 +217,20 @@
       <widget class="QPushButton" name="btnAll">
        <property name="text">
         <string>All</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QPushButton" name="btnExcel">
+       <property name="text">
+        <string>Generate Excel</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QPushButton" name="btnOpenExcel">
+       <property name="text">
+        <string>Open Excel</string>
        </property>
       </widget>
      </item>
@@ -359,8 +387,8 @@
    <slot>onBtnStep3()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>191</x>
-     <y>281</y>
+     <x>201</x>
+     <y>280</y>
     </hint>
     <hint type="destinationlabel">
      <x>388</x>
@@ -375,8 +403,8 @@
    <slot>onBtnStep4()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>192</x>
-     <y>312</y>
+     <x>202</x>
+     <y>307</y>
     </hint>
     <hint type="destinationlabel">
      <x>330</x>
@@ -391,8 +419,8 @@
    <slot>onBtnStep5()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>200</x>
-     <y>345</y>
+     <x>210</x>
+     <y>335</y>
     </hint>
     <hint type="destinationlabel">
      <x>423</x>
@@ -407,12 +435,76 @@
    <slot>onBtnStepAll()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>262</x>
-     <y>372</y>
+     <x>272</x>
+     <y>362</y>
     </hint>
     <hint type="destinationlabel">
      <x>437</x>
      <y>328</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnOpenHtml</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnOpenHtml()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>423</x>
+     <y>214</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>475</x>
+     <y>225</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnOpenDir</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnOpenOutDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>441</x>
+     <y>245</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>458</x>
+     <y>262</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnExcel</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnStepExcel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>182</x>
+     <y>377</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>277</x>
+     <y>272</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnOpenExcel</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnOpenExcel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>340</x>
+     <y>377</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>265</x>
+     <y>265</y>
     </hint>
    </hints>
   </connection>
@@ -429,5 +521,9 @@
   <slot>onBtnStep4()</slot>
   <slot>onBtnStep5()</slot>
   <slot>onBtnStepAll()</slot>
+  <slot>onBtnOpenOutDir()</slot>
+  <slot>onBtnOpenExcel()</slot>
+  <slot>onBtnStepExcel()</slot>
+  <slot>onBtnOpenHtml()</slot>
  </slots>
 </ui>

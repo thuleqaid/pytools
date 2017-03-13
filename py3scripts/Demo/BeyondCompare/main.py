@@ -55,6 +55,20 @@ class MainDialog(QtGui.QDialog):
                 self._fc.run3()
                 self._fc.run4(self._ui.spinBox.value())
                 self._fc.run5()
+        def onBtnStepExcel(self):
+            if self._setFCParam():
+                self._fc.runExcel()
+        def onBtnOpenHtml(self):
+            outdir = self._ui.editOutpath.text()
+            summary = self._ui.editSummary.text()
+            os.startfile(os.path.join(outdir, summary))
+        def onBtnOpenOutDir(self):
+            outdir = self._ui.editOutpath.text()
+            os.startfile(outdir)
+        def onBtnOpenExcel(self):
+            outdir = self._ui.editOutpath.text()
+            summary = os.path.splitext(self._ui.editSummary.text())[0] + '.xlsm'
+            os.startfile(os.path.join(outdir, summary))
         def _setFCParam(self):
             ret = False
             path1 = self._ui.editPath1.text()

@@ -17,6 +17,7 @@ import re
 import base64
 import shutil
 import xml.parsers.expat
+import ToExcel
 from collectscript import logutil, guess, multiprocess
 
 if hasattr(sys, 'frozen'):
@@ -190,6 +191,12 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
             self._patchHtml(fname, neighbors)
     def run5(self):
         shutil.rmtree(self._tmppath)
+    def runExcel(self):
+        summary = os.path.join(self._outpath, self._summaryfile)
+        outxlsm = os.path.splitext(summary)[0] + '.xlsm'
+        outxlsx = os.path.splitext(summary)[0] + '.xlsx'
+        tmpl = os.path.join(SELFPATH, 'tmpl.xlsm')
+        ToExcel.toExcel(self._outpath, outxlsm, outxlsx, tmpl, [summary,])
     def _patchSummaryTd(self, tdclass, tdtext):
         pat_img = re.compile(r'<img src="(?P<image>.*?)".*?\balt="(?P<alt>.*?)".*?>')
         pos, imgcount = 0, -1
