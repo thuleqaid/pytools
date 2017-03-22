@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>400</height>
+    <height>416</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -231,6 +231,13 @@
       <widget class="QPushButton" name="btnOpenExcel">
        <property name="text">
         <string>Open Excel</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QPushButton" name="btnOpenTempDir">
+       <property name="text">
+        <string>Browse Temp Path</string>
        </property>
       </widget>
      </item>
@@ -483,8 +490,8 @@
    <slot>onBtnStepExcel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>182</x>
-     <y>377</y>
+     <x>192</x>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
      <x>277</x>
@@ -499,12 +506,28 @@
    <slot>onBtnOpenExcel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>340</x>
-     <y>377</y>
+     <x>469</x>
+     <y>405</y>
     </hint>
     <hint type="destinationlabel">
      <x>265</x>
      <y>265</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btnOpenTempDir</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>onBtnOpenTempDir()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>357</x>
+     <y>287</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>474</x>
+     <y>286</y>
     </hint>
    </hints>
   </connection>
@@ -525,5 +548,6 @@
   <slot>onBtnOpenExcel()</slot>
   <slot>onBtnStepExcel()</slot>
   <slot>onBtnOpenHtml()</slot>
+  <slot>onBtnOpenTempDir()</slot>
  </slots>
 </ui>

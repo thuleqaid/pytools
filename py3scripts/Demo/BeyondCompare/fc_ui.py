@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName(_fromUtf8("Dialog"))
-        Dialog.resize(480, 400)
+        Dialog.resize(480, 416)
         self.verticalLayout = QtGui.QVBoxLayout(Dialog)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.gridLayout = QtGui.QGridLayout()
@@ -127,6 +127,9 @@ class Ui_Dialog(object):
         self.btnOpenExcel = QtGui.QPushButton(Dialog)
         self.btnOpenExcel.setObjectName(_fromUtf8("btnOpenExcel"))
         self.gridLayout_2.addWidget(self.btnOpenExcel, 6, 1, 1, 1)
+        self.btnOpenTempDir = QtGui.QPushButton(Dialog)
+        self.btnOpenTempDir.setObjectName(_fromUtf8("btnOpenTempDir"))
+        self.gridLayout_2.addWidget(self.btnOpenTempDir, 2, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout_2)
         self.label_6.setBuddy(self.editFilter)
         self.label_3.setBuddy(self.editOutpath)
@@ -152,6 +155,7 @@ class Ui_Dialog(object):
         QtCore.QObject.connect(self.btnOpenDir, QtCore.SIGNAL(_fromUtf8("clicked()")), Dialog.onBtnOpenOutDir)
         QtCore.QObject.connect(self.btnExcel, QtCore.SIGNAL(_fromUtf8("clicked()")), Dialog.onBtnStepExcel)
         QtCore.QObject.connect(self.btnOpenExcel, QtCore.SIGNAL(_fromUtf8("clicked()")), Dialog.onBtnOpenExcel)
+        QtCore.QObject.connect(self.btnOpenTempDir, QtCore.SIGNAL(_fromUtf8("clicked()")), Dialog.onBtnOpenTempDir)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.editPath1, self.btnPath1)
         Dialog.setTabOrder(self.btnPath1, self.editPath2)
@@ -196,5 +200,6 @@ class Ui_Dialog(object):
         self.btnAll.setText(_translate("Dialog", "All", None))
         self.btnExcel.setText(_translate("Dialog", "Generate Excel", None))
         self.btnOpenExcel.setText(_translate("Dialog", "Open Excel", None))
+        self.btnOpenTempDir.setText(_translate("Dialog", "Browse Temp Path", None))
 
 from dropedit import DropEdit

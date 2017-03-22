@@ -94,9 +94,11 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
         exeinfo = [self._exepath, '@{}'.format(os.path.join(self._tmppath, 'script1.txt'))]
         self._log.log(20, "Run Script 1")
         mp.run(exeinfo)
+        self._log.log(20, "Generate Script 2")
+        self._genScript2(True)
     def run2(self):
         # Compare each different files
-        self._log.log(20, "Generate Script 2")
+        self._log.log(20, "Generate Script 2 if not exists")
         self._genScript2()
         mp = multiprocess.MultiProcess()
         exeinfo = [self._exepath, '@{}'.format(os.path.join(self._tmppath, 'script2.txt'))]
@@ -150,7 +152,8 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
                     if info['link_target']:
                         # add html link
                         link_target = os.path.join(*dirinfo[didx],info['name']+".html").replace("\\", "/")
-                        curtdtext = curtdtext.replace(info['name'], '<a href="{}" target="_blank">{}</a>'.format(link_target, info['name']))
+                        if os.path.isfile(os.path.join(self._outpath, link_target)):
+                            curtdtext = curtdtext.replace(info['name'], '<a href="{}" target="_blank">{}</a>'.format(link_target, info['name']))
                     # embed image data
                     for img in info['image']:
                         if img not in imagedata:
@@ -174,7 +177,7 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
             newdata += data[item.end('content'):item.end(0)]
             lastpos = item.end(0)
         newdata += data[lastpos:]
-        fh = open(os.path.join(self._outpath, self._summaryfile), 'w')
+        fh = open(os.path.join(self._outpath, self._summaryfile), 'w', encoding='utf-8')
         fh.write(newdata)
         fh.close()
         # remove image files
@@ -187,6 +190,12 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
         if len(self._xmlresult) <= 0:
             self._parseXml()
         for item in self._xmlresult.get('diff', ()):
+            fname = os.path.join(self._outpath, item+".html")
+            self._patchHtml(fname, neighbors)
+        for item in self._xmlresult.get('ltonly', ()):
+            fname = os.path.join(self._outpath, item+".html")
+            self._patchHtml(fname, neighbors)
+        for item in self._xmlresult.get('rtonly', ()):
             fname = os.path.join(self._outpath, item+".html")
             self._patchHtml(fname, neighbors)
     def run5(self):
@@ -210,7 +219,7 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
             imgcount = idx
         if not flag_dir:
             imgcount += 1
-        flag_target = "DirItemDiff" in tdclass
+        flag_target = ("DirItemDiff" in tdclass) or ("DirItemOrphan" in tdclass)
         return {'link_target': flag_target,
                 'level':imgcount,
                 'name':tdtext[pos:].strip(),
@@ -263,13 +272,15 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
             os.makedirs(self._tmppath)
         if not os.path.isdir(self._outpath):
             os.makedirs(self._outpath)
-        with open(fname, 'w') as fh:
+        with open(fname, 'w', encoding='utf-8') as fh:
             fh.write(self._script0.format(logpath=os.path.join(self._tmppath, 'log1.txt')))
             fh.write(self._script1.format(**info))
-    def _genScript2(self):
-        self._parseXml()
+    def _genScript2(self, force = False):
         fname = os.path.join(self._tmppath, 'script2.txt')
-        with open(fname, 'w') as fh:
+        if (not force) and os.path.isfile(fname):
+            return
+        self._parseXml()
+        with open(fname, 'w', encoding='utf-8') as fh:
             fh.write(self._script0.format(logpath=os.path.join(self._tmppath, 'log2.txt')))
             for item in self._xmlresult.get('diff', ()):
                 info = {'title':item,
@@ -278,6 +289,22 @@ folder-report layout:xml options:display-all,column-size,column-timestamp title:
                         'outfile':os.path.join(self._outpath, item+".html")
                 }
                 fh.write(self._script2.format(**info))
+            fh.write('## Old olny\n')
+            for item in self._xmlresult.get('ltonly', ()):
+                info = {'title':item,
+                        'source1':os.path.join(self._path1, item),
+                        'source2':'XXXUnKnownXXX',
+                        'outfile':os.path.join(self._outpath, item+".html")
+                }
+                fh.write('#' + self._script2.format(**info))
+            fh.write('## New olny\n')
+            for item in self._xmlresult.get('rtonly', ()):
+                info = {'title':item,
+                        'source1':'XXXUnKnownXXX',
+                        'source2':os.path.join(self._path2, item),
+                        'outfile':os.path.join(self._outpath, item+".html")
+                }
+                fh.write('#' + self._script2.format(**info))
     def _xml_start_element(self, name, attrs):
         self._xmlpath.append(name)
         status = attrs.get('status', '')

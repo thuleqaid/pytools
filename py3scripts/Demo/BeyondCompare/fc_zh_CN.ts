@@ -4,17 +4,17 @@
 <context>
     <name>Dialog</name>
     <message>
-        <location filename="fc_ui.py" line="176"/>
+        <location filename="fc_ui.py" line="180"/>
         <source>FolderComparer</source>
         <translation>目录比较工具</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="186"/>
+        <location filename="fc_ui.py" line="190"/>
         <source>...</source>
         <translation>...</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="178"/>
+        <location filename="fc_ui.py" line="182"/>
         <source>Filter</source>
         <translation>文件过滤规则</translation>
     </message>
@@ -39,37 +39,37 @@
         <translation>原代码目录</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="188"/>
+        <location filename="fc_ui.py" line="192"/>
         <source>Summary Filename</source>
         <translation>一览文件名</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="191"/>
+        <location filename="fc_ui.py" line="195"/>
         <source>Clear temp path</source>
         <translation>清除临时目录</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="192"/>
+        <location filename="fc_ui.py" line="196"/>
         <source>Diff folder</source>
         <translation>差分文件</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="193"/>
+        <location filename="fc_ui.py" line="197"/>
         <source>Generate Summary</source>
         <translation>生成一览文件</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="194"/>
+        <location filename="fc_ui.py" line="198"/>
         <source>Patch Summary</source>
         <translation>一览文件补丁</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="195"/>
+        <location filename="fc_ui.py" line="199"/>
         <source>Patch diff</source>
         <translation>差分文件补丁</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="196"/>
+        <location filename="fc_ui.py" line="200"/>
         <source>All</source>
         <translation>全部执行</translation>
     </message>
@@ -79,24 +79,29 @@
         <translation>BCompare.exe路径</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="189"/>
+        <location filename="fc_ui.py" line="193"/>
         <source>Open Summary</source>
         <translation>打开一览文件</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="190"/>
+        <location filename="fc_ui.py" line="194"/>
         <source>Browse Output Path</source>
         <translation>打开输出目录</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="197"/>
+        <location filename="fc_ui.py" line="201"/>
         <source>Generate Excel</source>
         <translation>生成Excel文件</translation>
     </message>
     <message>
-        <location filename="fc_ui.py" line="198"/>
+        <location filename="fc_ui.py" line="202"/>
         <source>Open Excel</source>
         <translation>打开Excel文件</translation>
+    </message>
+    <message>
+        <location filename="fc_ui.py" line="203"/>
+        <source>Browse Temp Path</source>
+        <translation>打开临时目录</translation>
     </message>
 </context>
 </TS>

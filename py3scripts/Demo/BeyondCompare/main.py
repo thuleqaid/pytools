@@ -69,6 +69,9 @@ class MainDialog(QtGui.QDialog):
             outdir = self._ui.editOutpath.text()
             summary = os.path.splitext(self._ui.editSummary.text())[0] + '.xlsm'
             os.startfile(os.path.join(outdir, summary))
+        def onBtnOpenTempDir(self):
+            outdir = self._ui.editTemppath.text()
+            os.startfile(outdir)
         def _setFCParam(self):
             ret = False
             path1 = self._ui.editPath1.text()
