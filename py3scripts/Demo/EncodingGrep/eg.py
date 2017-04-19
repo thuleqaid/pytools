@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import os
+import sys
 import fnmatch
 import re
 from chardet.universaldetector import UniversalDetector
@@ -10,12 +11,38 @@ class EncodingGrep(object):
     def __init__(self):
         self.__options = self.parseCmd()
         self._detector = UniversalDetector()
+        self._pat = None
         self.action()
 
     def action(self):
         # Todo List:
         # -r -n -H -e --exclude-dir --exclude --include --encoding
-        self.grepDir(os.path.abspath(self.__options.glob[0]))
+        # construct search pattern
+        patlist = []
+        if self.__options.file:
+            # read patterns from file
+            with open(self.__options.file, 'rb') as fh:
+                data = fh.read()
+            self._detector.reset()
+            self._detector.feed(data)
+            self._detector.close()
+            data = data.decode(
+                self._detector.result['encoding'] or 'UTF-8', errors='ignore')
+            patlist = [x for x in data.splitlines() if len(x) > 0]
+        else:
+            patlist = [x for x in self.__options.regexp if len(x) > 0]
+        if self.__options.word_regexp:
+            patlist = [r'\b' + x + r'\b' for x in patlist]
+        elif self.__options.line_regexp:
+            patlist = [r'^' + x + r'$' for x in patlist]
+        pattxt = '|'.join(patlist)
+        if self.__options.ignore_case:
+            self._pat = re.compile(pattxt.encode('utf-8'), re.I)
+        else:
+            self._pat = re.compile(pattxt.encode('utf-8'))
+        # search
+        for item in self.__options.glob:
+            self.grepDir(os.path.abspath(item))
 
     def grepDir(self, path):
         for item in os.listdir(path):
@@ -38,8 +65,8 @@ class EncodingGrep(object):
                             break
 
     def grepFile(self, path):
-        pat = re.compile(self.__options.regexp[0].encode('utf-8'))
-        if self.__options.guess or (self.__options.encoding and len(self.__options.encoding) > 0):
+        # read file with correct encoding
+        if self.__options.guess or len(self.__options.encoding) > 0:
             with open(path, 'rb') as fh:
                 data = fh.read()
             if self.__options.guess:
@@ -47,7 +74,8 @@ class EncodingGrep(object):
                 self._detector.feed(data)
                 self._detector.close()
                 data = data.decode(
-                    self._detector.result['encoding'] or 'UTF-8', errors='ignore')
+                    self._detector.result['encoding'] or 'UTF-8',
+                    errors='ignore')
             else:
                 for testcode in self.__options.encoding:
                     try:
@@ -61,11 +89,23 @@ class EncodingGrep(object):
         else:
             with open(path, 'r', errors='ignore') as fh:
                 data = fh.read()
-
-        for idx, line in enumerate(data.splitlines()):
-            if pat.search(line.encode('utf-8')):
-                print('{path}:{line}:{code}'.format(
-                    path=path, line=idx + 1, code=line))
+        # save hit line index
+        data = data.splitlines()
+        matchlist = []
+        for idx, line in enumerate(data):
+            if self._pat.search(line.encode('utf-8')):
+                matchlist.append(idx)
+        # invert matchlist when --invert_match is set
+        if self.__options.invert_match:
+            matchlist = [x for x in range(len(data)) if x not in matchlist]
+        # output result
+        for item in matchlist:
+            outline = '{path}:{line}:{code}'.format(
+                path=path, line=item + 1, code=data[item])
+            if self.__options.stdout:
+                outline = outline.encode(sys.stdout.encoding, 'ignore').decode(
+                    sys.stdout.encoding, 'ignore')
+            print(outline)
 
     def parseCmd(self):
         parser = ArgumentParser(add_help=False)
@@ -93,6 +133,7 @@ class EncodingGrep(object):
             '--regexp',
             dest='regexp',
             action='append',
+            default=[],
             help='Search patterns')
         parser.add_argument(
             '-f',
@@ -337,6 +378,7 @@ class EncodingGrep(object):
             '--exclude',
             dest='exclude',
             action='append',
+            default=[],
             help=
             'Skip files whose base name matches glob (using wildcard matching). A file-name glob can use ‘*’, ‘?’, and ‘[’...‘]’ as wildcards, and \ to quote a wildcard or backslash character literally. '
         )
@@ -344,6 +386,7 @@ class EncodingGrep(object):
             '--exclude-from',
             dest='exclude_from',
             action='append',
+            default=[],
             help=
             'Skip files whose base name matches any of the file-name globs read from file (using wildcard matching as described under ‘--exclude’). '
         )
@@ -351,6 +394,7 @@ class EncodingGrep(object):
             '--exclude-dir',
             dest='exclude_dir',
             action='append',
+            default=[],
             help=
             'Exclude directories matching the pattern dir from recursive directory searches. '
         )
@@ -366,6 +410,7 @@ class EncodingGrep(object):
             '--include',
             dest='include',
             action='append',
+            default=[],
             help=
             'Search only files whose base name matches glob (using wildcard matching as described under ‘--exclude’). '
         )
@@ -419,6 +464,7 @@ class EncodingGrep(object):
             '--encoding',
             dest='encoding',
             action='append',
+            default=[],
             help='Encoding for reading text files.')
         parser.add_argument(
             '-G',
@@ -427,6 +473,13 @@ class EncodingGrep(object):
             action='store_true',
             default=False,
             help='Guess encoding for text files.')
+        parser.add_argument(
+            '-S',
+            '--stdout',
+            dest='stdout',
+            action='store_true',
+            default=False,
+            help='Encoding output text with system default encoding.')
         options = parser.parse_args()
         if options.help:
             parser.print_help()
