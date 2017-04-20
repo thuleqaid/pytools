@@ -3,31 +3,42 @@ import os
 import sys
 import fnmatch
 import re
-from chardet.universaldetector import UniversalDetector
 from argparse import ArgumentParser
 
 
 class EncodingGrep(object):
     def __init__(self):
         self.__options = self.parseCmd()
-        self._detector = UniversalDetector()
+        try:
+            from chardet.universaldetector import UniversalDetector
+            self._detector = UniversalDetector()
+        except:
+            self._detector = None
         self._pat = None
         self.action()
 
     def action(self):
         # Todo List:
         # -r -n -H -e --exclude-dir --exclude --include --encoding
+        if not self._detector:
+            if self.__options.guess:
+                print('Warning: Please run "pip install chardet" to enable coding detection.')
+                self.__options.guess = False
         # construct search pattern
         patlist = []
         if self.__options.file:
             # read patterns from file
             with open(self.__options.file, 'rb') as fh:
                 data = fh.read()
-            self._detector.reset()
-            self._detector.feed(data)
-            self._detector.close()
-            data = data.decode(
-                self._detector.result['encoding'] or 'UTF-8', errors='ignore')
+            if self._detector:
+                self._detector.reset()
+                self._detector.feed(data)
+                self._detector.close()
+                data = data.decode(
+                    self._detector.result['encoding'] or 'UTF-8',
+                    errors='ignore')
+            else:
+                data = data.decode('UTF-8', errors='ignore')
             patlist = [x for x in data.splitlines() if len(x) > 0]
         else:
             patlist = [x for x in self.__options.regexp if len(x) > 0]
@@ -45,24 +56,25 @@ class EncodingGrep(object):
             self.grepDir(os.path.abspath(item))
 
     def grepDir(self, path):
-        for item in os.listdir(path):
-            fullpath = os.path.join(path, item)
-            if os.path.isdir(fullpath):
-                if self.__options.recursive:
-                    for subitem in self.__options.exclude_dir:
+        if os.path.exists(path):
+            for item in os.listdir(path):
+                fullpath = os.path.join(path, item)
+                if os.path.isdir(fullpath):
+                    if self.__options.recursive:
+                        for subitem in self.__options.exclude_dir:
+                            if fnmatch.fnmatch(item, subitem):
+                                break
+                        else:
+                            self.grepDir(fullpath)
+                else:
+                    for subitem in self.__options.exclude:
                         if fnmatch.fnmatch(item, subitem):
                             break
                     else:
-                        self.grepDir(fullpath)
-            else:
-                for subitem in self.__options.exclude:
-                    if fnmatch.fnmatch(item, subitem):
-                        break
-                else:
-                    for subitem in self.__options.include:
-                        if fnmatch.fnmatch(item, subitem):
-                            self.grepFile(fullpath)
-                            break
+                        for subitem in self.__options.include:
+                            if fnmatch.fnmatch(item, subitem):
+                                self.grepFile(fullpath)
+                                break
 
     def grepFile(self, path):
         # read file with correct encoding
