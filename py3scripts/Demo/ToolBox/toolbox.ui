@@ -310,40 +310,44 @@
           <string>Output Field</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
-          <item row="4" column="0">
-           <widget class="QCheckBox" name="checkLines">
+          <item row="1" column="1">
+           <widget class="QCheckBox" name="checkSubFuncName">
             <property name="text">
-             <string>Lines</string>
+             <string>Sub Function Names</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="4">
+           <widget class="Line" name="line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QCheckBox" name="checkLoop">
+            <property name="text">
+             <string>Loop</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QCheckBox" name="checkCondition">
+            <property name="text">
+             <string>Condition</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="checkSubFuncCount">
+            <property name="text">
+             <string>Sub Function Call Count</string>
             </property>
             <property name="checked">
              <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QCheckBox" name="checkStartline">
-            <property name="text">
-             <string>Start Line</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="3">
-           <widget class="QCheckBox" name="checkFuncName">
-            <property name="text">
-             <string>Function Name</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="2">
-           <widget class="QCheckBox" name="checkFuncID">
-            <property name="text">
-             <string>Function ID</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -364,44 +368,20 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="4">
-           <widget class="Line" name="line">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+          <item row="0" column="2">
+           <widget class="QCheckBox" name="checkStartline">
+            <property name="text">
+             <string>Start Line</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QCheckBox" name="checkCondition">
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="checkLines">
             <property name="text">
-             <string>Condition</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QCheckBox" name="checkLoop">
-            <property name="text">
-             <string>Loop</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QCheckBox" name="checkSubFuncCount">
-            <property name="text">
-             <string>Sub Function Call Count</string>
+             <string>Lines</string>
             </property>
             <property name="checked">
              <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QCheckBox" name="checkSubFuncName">
-            <property name="text">
-             <string>Sub Function Names</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -422,13 +402,40 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
+          <item row="6" column="0">
+           <widget class="QCheckBox" name="checkFuncID">
+            <property name="text">
+             <string>Function ID</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QCheckBox" name="checkFuncName">
+            <property name="text">
+             <string>Function Name</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="2">
            <widget class="QCheckBox" name="checkInline">
             <property name="text">
              <string>Inline</string>
             </property>
             <property name="checked">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QCheckBox" name="checkHeaderline">
+            <property name="text">
+             <string>Header Line</string>
             </property>
            </widget>
           </item>

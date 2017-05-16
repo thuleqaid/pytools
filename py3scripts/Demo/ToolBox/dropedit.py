@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
-from PyQt4 import QtGui,QtCore
-class DropEdit(QtGui.QLineEdit):
+try:
+    from PyQt4 import QtGui,QtCore
+    from PyQt4.QtGui import QLineEdit
+except:
+    from PyQt5 import QtGui,QtCore
+    from PyQt5.QtWidgets import QLineEdit
+class DropEdit(QLineEdit):
     def __init__(self, parent):
         super(DropEdit, self).__init__(parent)
         self.setAcceptDrops(True)

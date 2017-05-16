@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt4 import QtGui,QtCore
+    from PyQt4.QtGui import QDialog, QApplication
+except:
+    from PyQt5 import QtGui,QtCore
+    from PyQt5.QtWidgets import QDialog, QApplication
 import os
 import sys
 import shutil
@@ -14,7 +19,7 @@ else:
     _selffile = __file__
 LOGCONFIG = os.path.join(logutil.scriptPath(_selffile), 'logging.conf')
 
-class MainDialog(QtGui.QDialog):
+class MainDialog(QDialog):
     def setupUi(self):
         self._selfpath = os.path.abspath(logutil.scriptPath(_selffile))
         self._ui = toolbox_ui.Ui_ToolBoxDialog()
@@ -302,7 +307,7 @@ class MainDialog(QtGui.QDialog):
 if __name__ == '__main__':
     logutil.logConf(LOGCONFIG)
     logutil.LogUtil(LOGCONFIG)
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     #Change UI Language based on system
     locale = QtCore.QLocale.system()
     #print(locale.name())

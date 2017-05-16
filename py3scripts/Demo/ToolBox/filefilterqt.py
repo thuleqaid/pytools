@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt4 import QtGui,QtCore
+    from PyQt4.QtGui import QWidget
+except:
+    from PyQt5 import QtGui,QtCore
+    from PyQt5.QtWidgets import QWidget
 import sys
 import os
 import configparser
@@ -11,7 +16,7 @@ if hasattr(sys,'frozen'):
     _selffile = sys.executable
 else:
     _selffile = __file__
-class FileFilterQt(QtGui.QWidget):
+class FileFilterQt(QWidget):
     CONFIG_FILE = 'filefilter.ini'
     def __init__(self, parent=None):
         super(FileFilterQt, self).__init__(parent)
